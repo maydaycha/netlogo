@@ -4,7 +4,7 @@
 ; Copyright Nigel Gilbert, Petra Ahrweiler, Andreas Pyka (C) 2003-2010
 ;
 ; version 2.0  25 August 2003
-; version .1  1 September 2003   Bugs caused by extreme parameter values removed.  
+; version .1  1 September 2003   Bugs caused by extreme parameter values removed.
 ;                                Partnerships added
 ; version .2  17 September 2003  Networks added
 ; version .3  26 October  2003   Some network bugs removed and plots added
@@ -16,7 +16,7 @@
 ; version .2  27 December 2003   Changed incremental research direction setting
 ; version .3  27 December 2003   Network graphics
 ; version .6   2 January  2004   Herfindahl index, bug fixes, shorter partner search
-; version .7  15 February 2004   Connectivity graph; variable start-ups; random initial capital; 
+; version .7  15 February 2004   Connectivity graph; variable start-ups; random initial capital;
 ;                                increased radical research threshold; changed network display
 ; version .8  24 January  2006   Added degree distribution plot
 ; version .9  31 May      2006   Added code for Behaviour Space runs
@@ -40,15 +40,15 @@ globals [
 ;   nProducts                    ; the number of products that are possible
 ;   nInputs                      ; the maximum number of inputs that a firm can require
 ;   n-big-firms                  ; number of firms with 10 times initial capital of rest
-;   reward-to-trigger-start-up   ; a start-up is created when the best reward in the  
+;   reward-to-trigger-start-up   ; a start-up is created when the best reward in the
 ;                                   round is more than or equal to this
 ;   attractiveness-threshold     ; how attractive a firm must be before it becomes a
                                  ;    partner
-;   partnership-strategy         ; whether partners as alike (conservative) or as different 
+;   partnership-strategy         ; whether partners as alike (conservative) or as different
                                  ;    as possible are sought
-;   success-threshold            ; how successful an innovation must be before it is a 
+;   success-threshold            ; how successful an innovation must be before it is a
                                  ;    success
-;   in-out-products-percent      ; percentage of the product range which are raw-materials and 
+;   in-out-products-percent      ; percentage of the product range which are raw-materials and
                                  ;  end-user products e.g. 0 -> (in-out-products-percent / 100) are raw-materials
 ;   initial-capital              ; the capital that a firm starts with
   initial-capital-for-big-firms  ; the amount of start-up capital for those firms set to be 'big'
@@ -58,7 +58,7 @@ globals [
   nCapabilities                  ; global number of capabilities possible
   low-capital-threshold          ; if a firm's capital is below this, it does radical
                                  ;    research
-  capital-knowledge-ratio        ; proportionality between kene length and firm's 
+  capital-knowledge-ratio        ; proportionality between kene length and firm's
                                  ;    capital
   incr-research-tax              ; tax paid for one step of incremental research
   radical-research-tax           ; tax paid for one step of radical research
@@ -70,7 +70,9 @@ globals [
   raw-materials                  ; the inputs that come from the environment are
                                  ;      numbered 0 up to (but not including) this
   end-products                   ; the outputs that are bought by the end-user (final consumers) are
-                                 ;      numbered greater than end-products  
+                                 ;      numbered greater than end-products
+
+  firm-number
 ]
 
 breed [ firms firm]              ; the firm agents
@@ -81,19 +83,19 @@ firms-own [
   capabilities                    ; the Firms kene part 1
   abilities                       ; the Firms kene part 2
   expertises                      ; the Firms kene part 3
-  ih                              ; the firm's innovation hypothesis 
+  ih                              ; the firm's innovation hypothesis
                                   ;     (the locations of the ih kene triples )
   new-ih?                         ; true when a new IH has been generated
-  advert                          ; a list of the capabilities of my innovation 
-                                  ;     hypothesis  
+  advert                          ; a list of the capabilities of my innovation
+                                  ;     hypothesis
   ;research
-  research-direction              ; direction of changing an ability 
+  research-direction              ; direction of changing an ability
                                   ;     (for incremental research)
-  ability-to-research             ; the ability that is being changed by incremental 
+  ability-to-research             ; the ability that is being changed by incremental
                                   ;     research
   done-rad-research               ; true if the firm has just done radical research
   partners                        ; agentset of my current partners
-  previous-partners               ; agentset of firms with which I have previously 
+  previous-partners               ; agentset of firms with which I have previously
                                   ;     partnered
   suppliers                       ; list of suppliers
   customers                       ; list of customers
@@ -102,20 +104,22 @@ firms-own [
   product                         ; the product produced by this firm (a number)
   inputs                          ; the products required as inputs to make the product
   quality                         ; the quality of the product
-  selling?                        ; whether I could make the product to sell this round 
-                                  ;      (I can make product only if all my inputs are 
+  selling?                        ; whether I could make the product to sell this round
+                                  ;      (I can make product only if all my inputs are
                                   ;      available to me)
   trading?                        ; whether I could make the product at a profit
   total-cost                      ; the total of the prices charged by suppliers for my inputs
   price                           ; the price I want to sell the product for
   sales                           ; the total amount received from selling in this round
   last-reward                     ; the profit received by the firm last time
-  
+
   ;firm
   capital                         ; the amount of capital of the firm
   net                             ; the network I am a member of
   age                             ; steps since the firm was started
   hq?                             ; is this a firm representing the headquarters of a network?
+
+  number
 ]
 
 networks-own [
@@ -132,9 +136,9 @@ to setup
   ;; of the procedure.)
   __clear-all-and-reset-ticks
   ask patches [set pcolor white ]
-  
+
   ; set basic global parameters
-  
+
   ;   set initial-capital 10000                ; set with an interface slider
   set initial-capital-for-big-firms initial-capital * 10
   ;   set nProducts 50                         ; set with an interface slider
@@ -142,30 +146,35 @@ to setup
   ;   set nInputs 4                            ; set with an interface slider
   set maxPrice 1000
   ;   set success-threshold 800                ; set with an interface slider
-  ;   set reward-to-trigger-start-up 950       ; set with an interface slider 
+  ;   set reward-to-trigger-start-up 950       ; set with an interface slider
   set max-ih-length 9                          ; innovation hypothesis
   set nCapabilities 1000
   ;   set attractiveness-threshold 0.4         ; set with an interface slider
-  set low-capital-threshold 1000     
+  set low-capital-threshold 1000
   set capital-knowledge-ratio 20 ;50
   set depreciation 100
   set incr-research-tax 100
   set radical-research-tax 100
   set collaboration-tax 100
   set max-partners 5
-  
-  ; in an open system, the products with the lowest product numbers are 'raw materials', 
-  ; always available and always sold at a low price (raw-cost) and the products with the 
-  ; highest product numbers are 'end-products', always purchased by consumers with 
-  ; inexhaustible demand at a high price (final-price).  The proportions of products that 
+
+  ; in an open system, the products with the lowest product numbers are 'raw materials',
+  ; always available and always sold at a low price (raw-cost) and the products with the
+  ; highest product numbers are 'end-products', always purchased by consumers with
+  ; inexhaustible demand at a high price (final-price).  The proportions of products that
   ; are raw-materials and end-products is set with the in-out-products-percent slider.
   set raw-cost 1
   set final-price 10 * maxPrice
   set raw-materials floor nProducts * in-out-products-percent / 100
-  set end-products  ceiling nProducts * ( 100 - in-out-products-percent) / 100 
-  
+  set end-products  ceiling nProducts * ( 100 - in-out-products-percent) / 100
+
+  set firm-number 0
+
   initialise-firms                 ; create a population of firms
   ask firms [ setup-firm ]
+
+;;  ask firms [ create-output-file ]  ;; create the file belongs to firm
+
   show-plots
 end
 
@@ -173,13 +182,13 @@ end
 
 to initialise-firms
   create-firms nFirms [
-    hide-turtle 
+    hide-turtle
     set capital initial-capital
-  ]   
+  ]
   ;  make some of them large firms, with extra initial capital
   ask n-of round ((big-firms-percent / 100) * nFirms) firms [ ;;bug fix for v 5-32: added /100
     ;; n-of size agnetset/list => Randomly chose n agents
-    set capital initial-capital-for-big-firms 
+    set capital initial-capital-for-big-firms
   ]
   ask firms [ initialise-firm ]
 end
@@ -204,6 +213,8 @@ to initialise-firm
   set capabilities []              ; create a null kene
   set abilities []
   set expertises []
+  set number firm-number
+  set firm-number firm-number + 1
 end
 
 ; set up a single firm with all its required knowledge
@@ -214,22 +225,20 @@ to setup-firm
   make-advert
   manufacture
 end
- 
-to go
 
-  
+to go
   if maxPrice = 0 [ setup ]  ; if the setup button hasn't been pressed, do it now
   if count firms = 0 [ stop ]       ; stop if all firms have gone bankrupt
 
-  ask firms [ 
+  ask firms [
     if partnership-strategy != "no partners" [ collaborate ]
-    do-research 
+    do-research
     manufacture
     pay-taxes
   ]
   find-suppliers
   buy
-  ask firms [ 
+  ask firms [
     take-profit
     adjust-price
   ]
@@ -238,8 +247,11 @@ to go
   show-plots
   ask networks [ distribute-network-profits ]
   ask firms [ do-admin ]
+
+  ;;; save each firm attribute
+  ask firms [ out-put-attributes ]
   tick
-end    
+end
 
 
 ;;; KNOWLEDGE LEVEL
@@ -247,7 +259,7 @@ end
 ;;;  create kene, innovation hypothesis, advert etc.
 ;;;
 
-; a kene is a set of triples of capability, ability and expertise.  These are held as 
+; a kene is a set of triples of capability, ability and expertise.  These are held as
 ; three arrays (vectors).  The length of the kene is proportional to the capital of the firm.
 
 ;firm procedure
@@ -256,16 +268,16 @@ to make-kene
   ;; but cannot be less than 5 triples.
   ;; the length is proportional to the log of 1 +  the capital divided
   ;; by the capital-knowledge-ratio
-  
+
   let cap-capacity ln (1 + (capital / capital-knowledge-ratio))
   if cap-capacity < 5 [ set cap-capacity 5 ]
-  
+
   ; fill the capability vector with capabilities.  These are integers
   ; between 1 and nCapabilities, such that no number is repeated
   while [length capabilities < cap-capacity] [
     let candidate-capability random nCapabilities + 1
-    if not member? candidate-capability capabilities [ 
-      set capabilities fput candidate-capability capabilities 
+    if not member? candidate-capability capabilities [
+      set capabilities fput candidate-capability capabilities
     ]
   ]
   ; now fill the ability and expertise vectors
@@ -275,12 +287,12 @@ to make-kene
     set abilities fput (random-float 10.0) abilities
     set expertises fput ((random 10) + 1) expertises
   ]
-end         
- 
+end
+
 ; an innovation hypothesis is a vector of locations in the kene.  So, for example, an IH
-; might be [1 3 4 7], meaning the second (counting from 0 as the first), fourth, fifth 
+; might be [1 3 4 7], meaning the second (counting from 0 as the first), fourth, fifth
 ; and eighth triple in the kene.  The IH cannot be longer than the length of the kene,
-; nor shorter than 2, but is of random length between these limits.  
+; nor shorter than 2, but is of random length between these limits.
 
 ;firm procedure
 to make-innovation-hypothesis
@@ -296,13 +308,13 @@ to make-innovation-hypothesis
     ]
   ]
   ; reorder the elements of the innovation hypothesis in numeric ascending order
-  set ih sort ih                    
-    
+  set ih sort ih
+
   ; initialise incremental research values, since this is a new innovation hypothesis, and
   ;  previous research will have been using a different IH
   set research-direction "random"
   ; ensure that a new product, quality and set of inputs are calculated for the firm
-  set new-ih? true   
+  set new-ih? true
 end
 
 ; set up the firm's advert, which is the list of capabilities in its innovation
@@ -313,33 +325,33 @@ to make-advert
   set advert map [ item ? capabilities ] ih
 end
 
-; a firm's product is computed from its innovation hypothesis, using the capabilities and 
+; a firm's product is computed from its innovation hypothesis, using the capabilities and
 ;    abilities.  It may not be a raw-material.
 ;firm procedure
 to make-product
   set product map-artefact ih raw-materials nProducts
-  ; if the customer is an end user, the income from a sale of the product is fixed at 'final-price', 
+  ; if the customer is an end user, the income from a sale of the product is fixed at 'final-price',
   ; otherwise set price to random
-  ifelse product > end-products 
-  [ set price final-price ] 
+  ifelse product > end-products
+  [ set price final-price ]
   [ set price (random maxPrice) + 1 ]
-end 
+end
 
-; the quality of a firm's product is computed from the abilities and expertise in its 
-; innovation hypothesis: it is the sum (modulo 10) of the product of the abilities and 
+; the quality of a firm's product is computed from the abilities and expertise in its
+; innovation hypothesis: it is the sum (modulo 10) of the product of the abilities and
 ; (1 - e to the power of the corresponding expertise level)
 
 ;firm procedure
 to make-quality
-  set quality 
-    (reduce [?1 + ?2]   
+  set quality
+    (reduce [?1 + ?2]
       (map [ (item ? abilities) * (1 - exp (- (item ? expertises))) ]
         ih))
   mod 10
 end
 
 ; the mapping from innovation hypothesis to product number
-; the product is the sum (modulo the total number of products) of the product of the 
+; the product is the sum (modulo the total number of products) of the product of the
 ; capabilities and the abilities in the innovation hypothesis
 ; NB this is different from the Cybernetics and Systems article, which says that it is
 ; composed from only capabilities (if that were the case, incremental research would
@@ -347,9 +359,9 @@ end
 
 to-report map-artefact [ locations bottom top]
   report int
-    ((reduce [?1 + ?2]   
+    ((reduce [?1 + ?2]
       (map [ (item ? capabilities) * (item ? abilities) ] locations)) mod (top - bottom)) + bottom
-end 
+end
 
 ; calculate what products a firm needs for its inputs.
 ; This is done by chopping the innovation hypothesis into sections, one for each input, and
@@ -358,39 +370,39 @@ end
 ;firm procedure
 to make-inputs
   set inputs []
-  
-  ; the number of inputs (ingredients) required for the product derived from this IH is between 1 and nInputs, 
+
+  ; the number of inputs (ingredients) required for the product derived from this IH is between 1 and nInputs,
   ;     but not more than the length of the IH
-  
+
   let number-of-inputs min (list (length ih) (random nInputs + 1))
 
   ; keep choosing a chunk of the IH, working out what ingredient this represents, and checking this is unique
   ; and not the same as the product until the required number of inputs have been determined.
-  
-  ; it can happen that it is impossible to find a distinct set of inputs and product, especially if the 
+
+  ; it can happen that it is impossible to find a distinct set of inputs and product, especially if the
   ; innovation hypothesis is short.  In such cases, give up.
-   
+
   let tries 0
-  
+
   while [ length inputs < number-of-inputs and tries < 10 * number-of-inputs ] [
     let start-loc random length ih
     let end-loc start-loc + random (length ih - start-loc)
     let input map-artefact (sublist ih start-loc (end-loc + 1)) 0 end-products
-    ifelse input != product and not member? input inputs [ 
+    ifelse input != product and not member? input inputs [
       set inputs fput input inputs
     ]
     [ set tries tries + 1 ]
   ]
-  
+
   if length inputs < number-of-inputs [
     ; failed to find a set of distinct inputs
     ; set the input to an 'impossible' product, so this firm
     ; never actually manufactures
     set inputs (list (nProducts + 1))
   ]
-    
-  ; stop firms that have only raw-material 
-  ; inputs and make an end-user product - 
+
+  ; stop firms that have only raw-material
+  ; inputs and make an end-user product -
   ; that's cheating!
   if product > end-products [
     let raw-inputs-only true
@@ -401,10 +413,10 @@ to make-inputs
   ]
 end
 
-; calculate the product that will be made, the inputs that will be required and 
+; calculate the product that will be made, the inputs that will be required and
 ; the quality of the product.  Adjust my expertise.
-; The product will not change unless the innovation hypothesis has changed.  
-; Nor will the inputs required.  The quality will change if expertises have changed 
+; The product will not change unless the innovation hypothesis has changed.
+; Nor will the inputs required.  The quality will change if expertises have changed
 ; (and normally they will have).
 
 ; firm procedure
@@ -429,12 +441,12 @@ end
 ;; a firm doesn't know whether its inputs can be supplied.  Even if it finds a potential supplier,
 ;; that supplier may not be able to produce because it can't find a supplier for its inputs!
 ;; Hence, we first treat all firms as possible producers, and then eliminate those that
-;; cannot actually produce, because no-one is offering the required inputs or no-one wants  
+;; cannot actually produce, because no-one is offering the required inputs or no-one wants
 ;; the firm's product, until there is no further change and all firms have been classified as either
 ;; potentially able to supply or definitely not (selling? is true or false respectively).
 
 ;; First, check that some firm produces all the inputs a firm requires: if not discard the firm
-;; Then loop discarding firms that produce products that no one in the remaining pool of firms 
+;; Then loop discarding firms that produce products that no one in the remaining pool of firms
 ;; wants, and firms that require inputs that no one in the pool produces and firms that would make
 ;; a loss if they did produce.
 ;; Continue discarding until there is no further change and set the remaining firms in the pool
@@ -453,17 +465,17 @@ to find-suppliers
     set possible-firms possible-firms with [ inputs-available possible-firms ]
   ]
   ; the firms remaining are those that have a product to sell
-  ask possible-firms [set selling? true ] 
-  
+  ask possible-firms [set selling? true ]
+
   ; discard firms for which the price of the inputs is greater than the price charged for the product
   ; such firms are 'selling' but not 'trading'
   set previous-possible-firms no-turtles
   while [ possible-firms != previous-possible-firms ] [
     set previous-possible-firms possible-firms
-  set possible-firms possible-firms with [ profitable possible-firms ] 
+  set possible-firms possible-firms with [ profitable possible-firms ]
   ]
   ask firms [set trading? false ]
-  ask possible-firms [set trading? true ]  
+  ask possible-firms [set trading? true ]
 end
 
 ;; return true if at least one of the firms in the market (an agentset)
@@ -474,7 +486,7 @@ end
 to-report product-desired [ market ]
   let my-product product
   ; if the product is an end-user product it is always in demand
-  if my-product > end-products [ report true ] 
+  if my-product > end-products [ report true ]
   let found-demand false
   report any? market with [member? my-product inputs]
 end
@@ -487,13 +499,13 @@ end
 to-report inputs-available [ market ]
   foreach inputs [
     ; the input must a raw-material (always available) or produced by some firm in the
-    ; market - if neither, at least one of the inputs required is not available 
+    ; market - if neither, at least one of the inputs required is not available
     if ? >= raw-materials and not any? market with [ ? = product ]  [ report false ]
   ]
   report true
 end
 
-;; return true if, using the cheapest suppliers, the total cost of the inputs available from 
+;; return true if, using the cheapest suppliers, the total cost of the inputs available from
 ;; other firms in the market is less than the price the firm is proposing to charge for its product.
 ;; At the same time, identify and record the best suppliers of the inputs.
 
@@ -513,9 +525,9 @@ to-report profitable [ market ]
         let cheapest-suppliers possible-suppliers with-min [ price ]
         ; if there is more than one at this price, find one with best quality
         set supplier max-one-of cheapest-suppliers [ quality ]
-      ] 
+      ]
       [ ; raw materials are always available
-        set supplier "raw-material" 
+        set supplier "raw-material"
       ]
       set suppliers fput supplier suppliers
     ]
@@ -530,15 +542,15 @@ end
 to-report cost-price
   let total 0
   foreach suppliers [
-    ifelse ? = "raw-material" 
+    ifelse ? = "raw-material"
     [ set total total + raw-cost ]
     [ set total total + [ price ] of ? ]
   ]
   report total
 end
-     
+
 ;; after all that, actually purchase the inputs from my selected suppliers,
-;; reducing my available capital and incrementing the number of customers and 
+;; reducing my available capital and incrementing the number of customers and
 ;; and sales total of each of the suppliers
 
 ; observer procedure
@@ -553,13 +565,13 @@ end
 to purchase
   set total-cost 0
   foreach suppliers [
-    ifelse ? = "raw-material" 
-      [ 
+    ifelse ? = "raw-material"
+      [
         set total-cost total-cost + raw-cost
       ]
-      [ 
+      [
         set total-cost total-cost + [price] of ?
-        ask ? [ 
+        ask ? [
           set capital capital + price
           set customers fput myself customers
           set sales sales + price
@@ -585,10 +597,10 @@ to take-profit
     set last-reward length customers * (price - total-cost)
   ]
 end
-   
-         
+
+
 ;;; COLLABORATION
-;;; 
+;;;
 ;;; find partners to collaborate with and form partnerships
 ;;;
 
@@ -605,56 +617,56 @@ to collaborate
   ]
 end
 
-; try up to max-partners (5) times to find partners to collaborate with, looking first at previous 
+; try up to max-partners (5) times to find partners to collaborate with, looking first at previous
 ; partners and then at suppliers, customers and finally others.  For each partner
 ; found, tell the partner that I am now a partner
 
 ;firm procedure
 to find-partners
   let candidates no-turtles
-  
+
   ; collect together all the firms I know from past experience
   ; note some 'suppliers' and 'customers' might be the string 'raw-material' or 'end-user'
   set candidates (turtle-set previous-partners (filter [is-firm? ?] suppliers) (filter [is-firm? ?] customers))
   ; if there are not enough, augment the list with random firms
-  if count candidates < max-partners [ 
+  if count candidates < max-partners [
     ; if there are very few firms left, there may not be enough in the pool
     ; to provide the extra ones needed, and in this case just use those that are available
     let xtra min (list (max-partners - count candidates) (count firms))
     set candidates (turtle-set candidates n-of xtra firms) ]
-  ; if the resulting list of candidate partners is now too long, chop the end ones 
+  ; if the resulting list of candidate partners is now too long, chop the end ones
   if count candidates > max-partners [ set candidates n-of max-partners candidates ]
-  
+
   ; now have a set of exactly max-partners candidates.  Select those that are compatible
   ; as actual partners
   set candidates candidates with [ compatible? myself ]
   set partners (turtle-set partners candidates)
-  ; add the new partner to my partners 
-  ask candidates [ set partners (turtle-set myself partners) ] 
-end 
+  ; add the new partner to my partners
+  ask candidates [ set partners (turtle-set myself partners) ]
+end
 
-; reports true or false according to whether the possible partner is sufficiently attractive, 
+; reports true or false according to whether the possible partner is sufficiently attractive,
 ; according to the current partnership strategy
 
 ;firm procedure
 to-report compatible? [ possible-partner ]
   let attractiveness 0
-  
+
   ; reject impossible potential partners (cannot partner with myself or with the HQ of a network)
   if possible-partner = self or [hq?] of possible-partner [ report false ]
   ; a partner cannot already be a member of my network
   if net != nobody and member? possible-partner [members] of net [ report false ]
   ; a possible partner cannot already be a partner of mine
-  if member? self [partners] of possible-partner or member? possible-partner partners [report false]    
+  if member? self [partners] of possible-partner or member? possible-partner partners [report false]
   ifelse partnership-strategy = "conservative"
     [ set attractiveness (length intersection advert [advert] of possible-partner) /
       (min list length advert length [advert] of possible-partner) ]
-    [ ifelse (length intersection advert [advert] of possible-partner) >= 1 
+    [ ifelse (length intersection advert [advert] of possible-partner) >= 1
       [ set attractiveness (length set-difference advert [advert] of possible-partner) /
         (length advert + length [advert] of possible-partner) ]
       [ set attractiveness 0 ]
     ]
-  report attractiveness > attractiveness-threshold 
+  report attractiveness > attractiveness-threshold
 end
 
 ; reports the set intersection of the lists a and b, treated as sets
@@ -669,11 +681,11 @@ end
 to-report set-difference [ set-a set-b ]
   let set-c intersection set-a set-b
   set set-b remove-duplicates sentence set-a set-b
-  foreach set-c [ if member? ? set-b [ set set-b remove ? set-b ] ] 
+  foreach set-c [ if member? ? set-b [ set set-b remove ? set-b ] ]
   report set-b
 end
 
-; obtain capabilities from partners.  The capabilities that are learned are those 
+; obtain capabilities from partners.  The capabilities that are learned are those
 ; from the partners' innovation hypothesis.
 
 ;firm procedure
@@ -688,10 +700,10 @@ to merge-capabilities [ other-firm ]
   ask other-firm [ add-capabilities myself ]
 end
 
-; for each capability in the other's innovation hypothesis, if it is new to me, 
-; add it (and its ability) to my kene (if I have sufficient capital), and make   
-; the expertise level 1 less. For each capability that is not new, if the other's  
-; expertise level is greater than mine, adopt its ability and expertise level, 
+; for each capability in the other's innovation hypothesis, if it is new to me,
+; add it (and its ability) to my kene (if I have sufficient capital), and make
+; the expertise level 1 less. For each capability that is not new, if the other's
+; expertise level is greater than mine, adopt its ability and expertise level,
 ; otherwise do nothing.
 
 ;firm procedure
@@ -703,19 +715,19 @@ to add-capabilities [ other-firm ]
       ;  capability already known to me
       set my-position position capability capabilities
       if item my-position expertises < item ? [expertises] of other-firm [
-        set expertises replace-item my-position expertises item ? [expertises] of other-firm 
+        set expertises replace-item my-position expertises item ? [expertises] of other-firm
         set abilities replace-item my-position abilities item ? [abilities] of other-firm
-      ] 
+      ]
     ]
     [
-    ; capability is new to me; adopt it if I have 'room' 
+    ; capability is new to me; adopt it if I have 'room'
     if (length capabilities) < ((capital / capital-knowledge-ratio) + 1) [
       set capabilities sentence capabilities capability
       set abilities sentence abilities item ? [abilities] of other-firm
       let other-expertise (item ? [expertises] of other-firm) - 1
       ; if other-expertise is 1, it is immediately forgotten by adjust-expertise
       if other-expertise < 2 [set other-expertise 2 ]
-      set expertises sentence expertises other-expertise 
+      set expertises sentence expertises other-expertise
     ]
   ]
 ]
@@ -729,7 +741,7 @@ end
 
 ; Successful firms don't do research, they just keep on with their previous product
 ; (unless their kene has changed through partnering).  Unsuccessful
-; firms normally do incremental research.  However, if their capital has almost 
+; firms normally do incremental research.  However, if their capital has almost
 ; all gone, they do radical research instead.
 
 ;firm procedure
@@ -740,16 +752,16 @@ to do-research
       [ do-incremental-research ]
   ]
 end
-    
-; adjust an ability up or down by an amount that is likely to change the product number by one unit.  
+
+; adjust an ability up or down by an amount that is likely to change the product number by one unit.
 ; If this is the second or subsequent time of doing incremental
 ; research, and the last reward was positive (although less than success-threshold, since if it
-; were above that, the firm would continue to produce the last innovation, rather than do 
-; research), make a change to the same ability in the same direction.  
-; If the first time or the research proved unsuccessful (the firm made a loss and last-reward  
-; is 0), choose a ability from the kene at random and alter it in a random direction. 
+; were above that, the firm would continue to produce the last innovation, rather than do
+; research), make a change to the same ability in the same direction.
+; If the first time or the research proved unsuccessful (the firm made a loss and last-reward
+; is 0), choose a ability from the kene at random and alter it in a random direction.
 
-; research-direction is initially "random".  It is set here to "down" or "up" to show  
+; research-direction is initially "random".  It is set here to "down" or "up" to show
 ; direction of research.  If an ability has been explored to the limit (reached 0 or 10),
 ; the direction is reset to random.
 
@@ -763,7 +775,7 @@ to do-incremental-research
       [ set research-direction "down" ]
   ]
   let new-ability item ability-to-research abilities
-  ifelse research-direction = "up" 
+  ifelse research-direction = "up"
     [ set new-ability new-ability +  (new-ability / item ability-to-research capabilities) ]
     [ set new-ability new-ability -  (new-ability / item ability-to-research capabilities)  ]
   if new-ability <= 0  [ set new-ability 0   set research-direction "random"]
@@ -771,9 +783,9 @@ to do-incremental-research
   set abilities replace-item  ability-to-research abilities new-ability
   set new-ih? true
   pay-tax incr-research-tax
-end        
+end
 
-; radical research just means 
+; radical research just means
 ; a. randomly changing one capability for a new value and then
 ; b. constructing a new innovation hypothesis from the kene
 
@@ -783,7 +795,7 @@ to do-radical-research
   set done-rad-research true
   let capability-to-mutate (random length capabilities)
   let new-capability (random nCapabilities) + 1; find a capability that is new to this firm
-  while [ member? new-capability capabilities ] 
+  while [ member? new-capability capabilities ]
     [set new-capability (random nCapabilities) + 1 ]
   set capabilities replace-item capability-to-mutate capabilities new-capability
   set new-ih? true
@@ -791,8 +803,8 @@ to do-radical-research
 end
 
 
-; raise the expertise level by one (up to a maximum of 10) for capabilities that 
-; are used in the innovation, and decrease by one for capabilities that are not.  
+; raise the expertise level by one (up to a maximum of 10) for capabilities that
+; are used in the innovation, and decrease by one for capabilities that are not.
 ; If an expertise level has dropped to zero, the capability is forgotten.
 
 ;firm procedure
@@ -801,21 +813,21 @@ to adjust-expertise
   let location 0
   while [ location < length capabilities ] [
     let expertise item location expertises
-    ifelse member? location ih 
+    ifelse member? location ih
       [ ; capability has been used - increase expertise if possible
-        if expertise < 10 [ set expertises replace-item location expertises (expertise + 1) ] 
+        if expertise < 10 [ set expertises replace-item location expertises (expertise + 1) ]
       ]
       [ ; capability has not been used - decrease expertise and drop capability if expertise has fallen to zero
-        ifelse expertise > 0  
+        ifelse expertise > 0
         [ set expertises replace-item location expertises (expertise - 1) ]
-        [ forget-capability location set location location - 1] 
+        [ forget-capability location set location location - 1]
       ]
     set location location + 1
-  ]       
+  ]
 end
 
-; remove the capability, ability, expertise at the given location of the kene.  
-; Warning; all hell will break loose if the capability that is being forgotten is included 
+; remove the capability, ability, expertise at the given location of the kene.
+; Warning; all hell will break loose if the capability that is being forgotten is included
 ; in the innovation hypothesis (but no test is done to check this).
 ; Although the keen is changed, the innovation hypothesis and the product are not (since
 ; the forgotten capability is not in the ih, this doesn't matter)
@@ -828,7 +840,7 @@ to forget-capability [location ]
   adjust-ih location
 end
 
-; reduce the values (which are indices into the kene) in the innovation hypothesis to 
+; reduce the values (which are indices into the kene) in the innovation hypothesis to
 ; account for the removal of a capability.  Reduce all indices above 'location' by one
 
 ;firm procedure
@@ -837,47 +849,47 @@ to adjust-ih [ location ]
   let i 0
   while [ i < length ih ] [
     set elem item i ih
-    if elem > location [ set ih replace-item i ih (elem - 1 ) ] 
+    if elem > location [ set ih replace-item i ih (elem - 1 ) ]
     set i i + 1
   ]
 end
 
-; Adjust the price of my product to respond to market conditions: 
+; Adjust the price of my product to respond to market conditions:
 ; If in the last round I sold a product to lots ofcustomers, increase the price by 10%
 ; If there were no buyers, reduce the price by 10%
 
 ;firm procedure
 to adjust-price
   if not Adj-price [ stop ]
-  if trading? [ 
+  if trading? [
     if length customers > 4 [ set price price * 1.1 ]
     if length customers = 0 [ set price price * 0.9 ]
   ]
-end   
+end
 
 
 ;;; CREATE NETWORKS
 ;;;
 
-; if the firm's last innovation was successful and they are not already a member of 
-; a network and they have enough capital, initiate the formation of a network and add myself 
+; if the firm's last innovation was successful and they are not already a member of
+; a network and they have enough capital, initiate the formation of a network and add myself
 ; and my partners as the initial members
 
 ;observer procedure
 to create-nets
   if not Networking [ stop ]
   ask firms with [ (last-reward > success-threshold) and (capital > initial-capital) and (net = nobody) ] [
-    create-network 
+    create-network
   ]
 end
 
 
 ; A network consist of a network agent with an associated network firm.  The latter does all
-; the work of innovation and production for the network.  
+; the work of innovation and production for the network.
 
 ; Create a network agent founded on myself as the first member and add my partners as members,
-; unless they alrady are members of an existing network. Create the associated network firm, 
-; that is the network's headquarters (HQ),  Collect the start-up capital for the 
+; unless they alrady are members of an existing network. Create the associated network firm,
+; that is the network's headquarters (HQ),  Collect the start-up capital for the
 ; new firm from the partners, in proportion to the partners' wealth
 
 ; firm procedure
@@ -919,10 +931,10 @@ to-report make-network
       initialise-firm
       set hq? true
       ; link this firm to its network
-      set net new-net             
-      ask new-net [ 
+      set net new-net
+      ask new-net [
         ; tell the network about its HQ
-        set hq hqfirm 
+        set hq hqfirm
         set members []
         ]
     ]
@@ -936,11 +948,11 @@ end
 ;firm procedure
 to copy-ih-capabilities [ source ]
   foreach [ih] of source [
-    set capabilities fput item ? [capabilities] of source capabilities 
-    set abilities fput item ? [abilities] of source abilities 
+    set capabilities fput item ? [capabilities] of source capabilities
+    set abilities fput item ? [abilities] of source abilities
     set expertises fput item ? [expertises] of source expertises
   ]
-end 
+end
 
 ; add the-firm and all its partners to the network (and so on recursively)
 
@@ -950,17 +962,17 @@ to add-members [ the-firm ]
   ; add the firm to the network
   set members fput the-firm members
   ; merge the kene of the firm into the network
-  ask the-firm [ 
+  ask the-firm [
     set net the-network
-    merge-capabilities [ hq ] of the-network 
+    merge-capabilities [ hq ] of the-network
   ]
   ; find the partners of the firm that are not already in a network
   let my-partners no-turtles
   ask the-firm [ set my-partners partners with [ net = nobody ] ]
   if not any? my-partners [ stop ]
   ; and add the firm's partners to the network
-  ask my-partners [ 
-    ask the-network [ add-members myself ] 
+  ask my-partners [
+    ask the-network [ add-members myself ]
   ]
 end
 
@@ -976,7 +988,7 @@ to pay-taxes
   pay-tax depreciation        ; annual depreciation
 end
 
-; the money paid just disappears.  Later it may be transferred to end-users, to keep it 
+; the money paid just disappears.  Later it may be transferred to end-users, to keep it
 ;   in circulation
 
 ;firm procedure
@@ -984,7 +996,7 @@ to pay-tax [ amount ]
   set capital capital - amount
 end
 
-; If the network has been successful, distribute all the profits of the network 
+; If the network has been successful, distribute all the profits of the network
 ; above the initial capital equally to all the network members
 ; Alternatively if the network has gone bankrupt, dissolve the network
 
@@ -992,11 +1004,11 @@ end
 to distribute-network-profits
   if length members > 0 and [capital] of hq > initial-capital [
     let amount-to-distribute ([capital] of hq - initial-capital) / length members
-    foreach members [ 
+    foreach members [
       ask ? [ set capital capital + amount-to-distribute ]
     ]
     ask hq [ set capital initial-capital ]
-  ]       
+  ]
   if [capital] of hq < 0 [ dissolve-network ]
 end
 
@@ -1015,10 +1027,10 @@ end
 ; some final tidying up at the end of every round
 
 ;firm procedure
-to do-admin            
+to do-admin
   ; dissolve this round's partnerships, but remember the partners for the future
   set previous-partners (turtle-set previous-partners partners)
-  set age age + 1 
+  set age age + 1
   ; die if bankrupt
   if capital < 0 [ exit ]
 end
@@ -1027,7 +1039,7 @@ end
 
 ;firm procedure
 to exit
-  ; remove the firm from its network (if any).  If the network has only one 
+  ; remove the firm from its network (if any).  If the network has only one
   ;  member (in addition to the HQ firm), also kill the network
   if net != nobody [
     ask net [ set members remove myself members ]
@@ -1057,9 +1069,9 @@ end
 
 ;observer procedure
 to create-start-ups
-  if count firms = 0 [ stop ] 
+  if count firms = 0 [ stop ]
   if not Start-ups [ stop ]
-  let biggest-reward max [last-reward] of firms 
+  let biggest-reward max [last-reward] of firms
   if biggest-reward > reward-to-trigger-start-up
     [ repeat log biggest-reward 10 [ make-start-up ] ]
 end
@@ -1075,10 +1087,10 @@ to make-start-up
     make-innovation-hypothesis
     make-advert
     manufacture
-  ] 
+  ]
 end
 
-; cloning a kene involves copying the triples in its innovation hypothesis, 
+; cloning a kene involves copying the triples in its innovation hypothesis,
 ; but chopping it to a length suitable for the capital of the firm receiving it
 
 ;firm procedure
@@ -1091,11 +1103,11 @@ to clone-kene [ firm-to-clone ]
     set expertises fput (item triple-pos [expertises] of firm-to-clone) expertises
     set ih-pos ih-pos + 1
   ]
-end         
-  
+end
+
 ;;; DISPLAY
 ;;;
-;;; display some plots  
+;;; display some plots
 
 ;observer procedure
 to show-plots
@@ -1112,30 +1124,30 @@ to show-plots
     if count firms with [ capital > 0 ] > 0 [ ;; 計算 capital > 0 的firm數量
      set-current-plot-pen "Average"
      plot mean [ log capital 10 ] of firms with [ capital > 0 ] ;; mean => aberage, mean capital of firms whose capital > 0
-     
-     file-write "Average: " 
+
+     file-write "Average: "
      file-write mean [ log capital 10 ] of firms with [ capital > 0 ]
      file-print ""
-     
+
     ]
-    
-    
+
+
     set-current-plot "Collaboration"
     file-print "Collaboration"
-   
+
     set-current-plot-pen "In partnership"
     file-write "In partnership: "
     plot 100 * count firms with [ any? partners ] / count-of-firms   ;; 畫有partner的firm （plot y-value）
     file-write 100 * count firms with [ any? partners ] / count-of-firms
     file-print ""
-    
+
     set-current-plot-pen "In network"
-    file-write "In network:"    
-    plot 100 * count firms with [ net != nobody ] / count-of-firms  
-    file-write 100 * count firms with [ net != nobody ] / count-of-firms  
+    file-write "In network:"
+    plot 100 * count firms with [ net != nobody ] / count-of-firms
+    file-write 100 * count firms with [ net != nobody ] / count-of-firms
     file-print ""
-    
-    if any? networks [ plot-degree-distribution ]        
+
+    if any? networks [ plot-degree-distribution ]
 
     set-current-plot "Population"
     file-print "Population"
@@ -1146,18 +1158,18 @@ to show-plots
     file-print ""
     set-current-plot-pen "Networks"
     file-write "Networks: "
-    plot count networks 
-    file-write count networks 
+    plot count networks
+    file-write count networks
     file-print ""
-    
+
     set-current-plot "Dynamics"
     file-print "Dynamics"
     set-current-plot-pen "Successes"
     file-write "Successes: "
     let selling-firms count firms with [selling?]
-    if selling-firms > 0 [ 
-      plot 100 * count firms with [ last-reward > success-threshold ] / selling-firms 
-      file-write 100 * count firms with [ last-reward > success-threshold ] / selling-firms 
+    if selling-firms > 0 [
+      plot 100 * count firms with [ last-reward > success-threshold ] / selling-firms
+      file-write 100 * count firms with [ last-reward > success-threshold ] / selling-firms
     ]
     file-print ""
     set-current-plot-pen "Start-ups"
@@ -1165,20 +1177,20 @@ to show-plots
     plot 100 * count firms with [ age = 0 and ticks != 0 and not hq?] / count-of-firms
     file-write 100 * count firms with [ age = 0 and ticks != 0 and not hq?] / count-of-firms
     file-print ""
-    
+
     set-current-plot "Transactions"
     file-print "Transactions"
     set-current-plot-pen "Firms selling"
     file-write  "Firms selling: "
     plot 100 * count firms with [ selling? ] / count-of-firms
     file-print 100 * count firms with [ selling? ] / count-of-firms
-    
+
     set-current-plot-pen "Firms trading"
     file-write "Firms trading: "
-    
+
     plot 100 *  count firms with [ trading? ] / count-of-firms
     file-print 100 *  count firms with [ trading? ] / count-of-firms
-    
+
     set-current-plot "Sales"
     file-print "Sales"
     if count firms with [sales > 0] > 0 [
@@ -1187,14 +1199,14 @@ to show-plots
       plot mean [sales ] of firms with [sales > 0 ]
       file-print mean [sales ] of firms with [sales > 0 ]
     ]
-    
+
     if count firms with [last-reward > 0] > 0 [
       set-current-plot-pen "Profit"
       file-write "Profit: "
-      plot mean [ last-reward ] of firms with [last-reward > 0 ] 
-      file-print mean [ last-reward ] of firms with [last-reward > 0 ] 
+      plot mean [ last-reward ] of firms with [last-reward > 0 ]
+      file-print mean [ last-reward ] of firms with [last-reward > 0 ]
     ]
-    
+
     set-current-plot "Networks"
     file-print "Networks"
     if count networks > 0 [
@@ -1202,57 +1214,57 @@ to show-plots
       histogram [ length members ] of networks  ; 這邊需要在記錄數值
       file-print [ length members ] of networks
      ]
-      
+
     set-current-plot "Partners"
     file-print "Partners"
     histogram  [count partners] of firms with [ any? partners ] ; 這邊需要在記錄數值
     file-print [count partners] of firms with [ any? partners ]
-    
+
     set-current-plot "Age distribution"
     file-print "Age distribution"
     set-current-plot-pen "Age"
     file-write "Age: "
     let max-age max [ age ] of firms
-    if  max-age > 0 [ 
+    if  max-age > 0 [
       set-plot-x-range 0 max-age
       histogram [age ] of firms  ; 這邊需要在記錄數值
       file-print [age ] of firms
-      ]
+     ]
 
     set-current-plot "Size distribution"
     file-print "Size distribution"
     set-current-plot-pen "Size"
     file-write "Size: "
     let max-cap max [ capital ] of firms
-    if max-cap > 0 [ 
+    if max-cap > 0 [
       histogram [ 100 * capital / max-cap ] of firms ; 這邊需要在記錄數值
       file-print [ 100 * capital / max-cap ] of firms
-      
+
     ]
-    
+
     set-current-plot "Rate of radical research"
     file-print "Rate of radical research"
-    
+
     set-current-plot-pen "Rad-research"
     file-write "Rad-research: "
-    plot count firms with [ done-rad-research ]    
-    file-print count firms with [ done-rad-research ]    
-    
+    plot count firms with [ done-rad-research ]
+    file-print count firms with [ done-rad-research ]
+
     set-current-plot "Artefacts"
     file-print "Artefacts"
-    
+
     set-current-plot-pen "Products"
     file-write "Products: "
-    
+
     histogram  [ product ] of firms
     file-print [ product ] of firms
-    
+
     set-current-plot-pen "Inputs"
     file-write "Inputs: "
-    
+
     histogram reduce [sentence ?1 ?2] [ inputs ] of firms
     file-print reduce [sentence ?1 ?2] [ inputs ] of firms
-    
+
     file-close ; close file
 end
 
@@ -1266,7 +1278,7 @@ to plot-degree-distribution
   clear-plot  ;; erase what we plotted before
   set-plot-pen-color black
   set-plot-pen-mode 2 ;; plot points
-  let max-degree max [length members] of networks 
+  let max-degree max [length members] of networks
   let degree 1 ; only include nodes with at least one link
   let sumx 0 ;; for regression line
   let sumy 0
@@ -1279,7 +1291,7 @@ to plot-degree-distribution
     let matches networks with [length members = degree]
     if any? matches
       [ let x log degree 10
-        let y log (count matches) 10 
+        let y log (count matches) 10
         plotxy x y
         set sumx sumx + x
         set sumy sumy + y
@@ -1301,15 +1313,108 @@ to plot-degree-distribution
    plot-pen-down
    ifelse slope = 0 [
      plotxy intercept intercept  ;; regression line is parallel to x-axis
-     ]
-     [
+   ] [
      plotxy -1 * intercept / slope 0
-     ]
+   ]
   ]
 end
 
+to create-output-file
+
+  file-open (word number ".txt") ; open file to write
+  file-write "capabilities   "
+  file-write "abilities   "
+  file-write "expertises   "
+  file-write "ih   "
+
+  file-write "new-ih?  "
+  file-write "advert  "
+
+  file-write "research-direction  "
+
+  file-write "ability-to-research  "
+
+  file-write "done-rad-research  "
+  file-write "partners  "
+  file-write "previous-partners  "
+
+  file-write "suppliers  "
+  file-write "customers  "
+
+  file-write "product  "
+  file-write "inputs  "
+  file-write "quality  "
+  file-write "selling?  "
+
+
+  file-write "trading?  "
+  file-write "total-cost  "
+  file-write "price  "
+  file-write "sales  "
+  file-write "last-reward  "
+
+  file-write "capital  "
+  file-write "net  "
+  file-write "age  "
+  file-write "hq?  "
+
+    file-print ""
+
+  file-close
+
+end
+
+
+to out-put-attributes
+  file-open (word "output/" number ".txt") ; open file to write
+
+  file-print(word "======================" ticks "=========================") 
+
+  file-print( word "capabilities: " capabilities " " )
+  file-print( word "abilities: " abilities " " )
+  file-print( word "expertises: " expertises " " )
+  file-print( word "ih: " ih " " )
+
+  file-print( word "new-ih?: " new-ih? " " )
+  file-print( word "advert: " advert " " )
+
+  file-print( word "research-direction: " research-direction " " )
+
+  file-print( word "ability-to-research: " ability-to-research " " )
+
+  file-print( word "done-rad-research: " done-rad-research " " )
+  file-print( word "partners: " partners " " )
+  file-print( word "previous-partners: " previous-partners " " )
+
+  file-print( word "suppliers: " suppliers " " )
+  file-print( word "customers: " customers " " )
+
+  file-print( word "product: " product " " )
+  file-print( word "inputs: " inputs " " )
+  file-print( word "quality: " quality " " )
+  file-print( word "selling?: " selling? " " )
+
+
+  file-print( word "trading?: " trading? " " )
+  file-print( word "total-cost: " total-cost " " )
+  file-print( word "price: " price " " )
+  file-print( word "sales: " sales " " )
+  file-print( word "last-reward: " last-reward " " )
+
+  file-print( word "capital: " capital " " )
+  file-print( word "net: " net " " )
+  file-print( word "age: " age " " )
+  file-print( word "hq?: " hq? " " )
+
+  file-print ""
+
+
+  file-close
+
+end
+
 ;; end of code
-      
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 320
@@ -1707,7 +1812,7 @@ SWITCH
 506
 Incr-research
 Incr-research
-0
+1
 1
 -1000
 

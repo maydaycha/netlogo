@@ -1,0 +1,308 @@
+======================14=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 18400 
+net: nobody 
+age: 16 
+hq?: false 
+
+======================15=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 18300 
+net: nobody 
+age: 17 
+hq?: false 
+
+======================16=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 18200 
+net: nobody 
+age: 18 
+hq?: false 
+
+======================17=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 18100 
+net: nobody 
+age: 19 
+hq?: false 
+
+======================18=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 18000 
+net: nobody 
+age: 20 
+hq?: false 
+
+======================19=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 17900 
+net: nobody 
+age: 21 
+hq?: false 
+
+======================20=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 17800 
+net: nobody 
+age: 22 
+hq?: false 
+
+======================21=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 17700 
+net: nobody 
+age: 23 
+hq?: false 
+
+======================22=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 17600 
+net: nobody 
+age: 24 
+hq?: false 
+
+======================23=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 17500 
+net: nobody 
+age: 25 
+hq?: false 
+
+======================24=========================
+capabilities: [122 377 90 815 881 727 791] 
+abilities: [7.7570837893677975 0.2085844518627511 5.379794698725341 9.882483369477747 1.3476201763829099 8.565660131133136 6.419017820513524] 
+expertises: [8 2 4 3 10 9 7] 
+ih: [2 5] 
+new-ih?: false 
+advert: [90 727] 
+research-direction: random 
+ability-to-research: 0 
+done-rad-research: false 
+partners: (agentset, 0 turtles) 
+previous-partners: (agentset, 0 turtles) 
+suppliers: [raw-material (firm 43)] 
+customers: [] 
+product: 25 
+inputs: [65 16] 
+quality: 3.8458633664224404 
+selling?: true 
+trading?: false 
+total-cost: 0 
+price: 229 
+sales: 0 
+last-reward: 0 
+capital: 17400 
+net: nobody 
+age: 26 
+hq?: false 
+
