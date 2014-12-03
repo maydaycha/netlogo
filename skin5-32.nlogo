@@ -52,6 +52,7 @@ globals [
                                  ;  end-user products e.g. 0 -> (in-out-products-percent / 100) are raw-materials
 ;   initial-capital              ; the capital that a firm starts with
   initial-capital-for-big-firms  ; the amount of start-up capital for those firms set to be 'big'
+  initial-capital-for-big-universities  ; the amount of start-up capital for those universities set to be 'big' 
   maxPrice                       ; maximum initial price of any product
   maxQuality                     ; maximum initial quality of any product
   max-ih-length                  ; maximum length of an innovation hypothesis
@@ -71,12 +72,17 @@ globals [
                                  ;      numbered 0 up to (but not including) this
   end-products                   ; the outputs that are bought by the end-user (final consumers) are
                                  ;      numbered greater than end-products
-
-  firm-number
+                                 
+                                 ;; added by Yao-Ching
+  firm-number                    ; for counting firm 
+  university-number              ; for counting university
 ]
 
 breed [ firms firm]              ; the firm agents
 breed [ networks network]        ; an association of several firms
+
+                                 ;; added by Yao-Ching
+breed [universities university]  ; the university agents 
 
 firms-own [
   ;kene
@@ -127,6 +133,50 @@ networks-own [
   members                         ; the firms that constitute this network
 ]
 
+universities-own [
+    ;kene
+  capabilities                    ; the Firms kene part 1
+  abilities                       ; the Firms kene part 2
+  expertises                      ; the Firms kene part 3
+  ih                              ; the firm's innovation hypothesis
+                                  ;     (the locations of the ih kene triples )
+  new-ih?                         ; true when a new IH has been generated
+  advert                          ; a list of the capabilities of my innovation
+                                  ;     hypothesis
+  ;research
+  research-direction              ; direction of changing an ability
+                                  ;     (for incremental research)
+  ability-to-research             ; the ability that is being changed by incremental
+                                  ;     research
+  done-rad-research               ; true if the firm has just done radical research
+  partners                        ; agentset of my current partners
+  previous-partners               ; agentset of firms with which I have previously
+                                  ;     partnered
+  suppliers                       ; list of suppliers
+  customers                       ; list of customers
+
+  ;product
+  product                         ; the product produced by this firm (a number)
+  inputs                          ; the products required as inputs to make the product
+  quality                         ; the quality of the product
+  selling?                        ; whether I could make the product to sell this round
+                                  ;      (I can make product only if all my inputs are
+                                  ;      available to me)
+  trading?                        ; whether I could make the product at a profit
+  total-cost                      ; the total of the prices charged by suppliers for my inputs
+  price                           ; the price I want to sell the product for
+  sales                           ; the total amount received from selling in this round
+  last-reward                     ; the profit received by the firm last time
+
+  ;university
+  capital                         ; the amount of capital of the university
+  net                             ; the network I am a member of
+  age                             ; steps since the university was started
+  hq?                             ; is this a firm representing the headquarters of a network?
+
+  number
+]
+
 
 to setup
   no-display
@@ -141,6 +191,7 @@ to setup
 
   ;   set initial-capital 10000                ; set with an interface slider
   set initial-capital-for-big-firms initial-capital * 10
+  set initial-capital-for-big-universities initial-capital-university * 10
   ;   set nProducts 50                         ; set with an interface slider
   ;   set nFirms 100                           ; set with an interface slider
   ;   set nInputs 4                            ; set with an interface slider
@@ -172,8 +223,9 @@ to setup
 
   initialise-firms                 ; create a population of firms
   ask firms [ setup-firm ]
-
-;;  ask firms [ create-output-file ]  ;; create the file belongs to firm
+  
+  initialise-universities
+  ask universities [ setup-university ]
 
   show-plots
 end
@@ -191,6 +243,23 @@ to initialise-firms
     set capital initial-capital-for-big-firms
   ]
   ask firms [ initialise-firm ]
+end
+
+
+;; make firms as empty shells, yet to be filled with knowledge
+;; added by Yao-Ching
+
+to initialise-universities
+  create-universities nUniversities [
+    hide-turtle
+    set capital initial-capital-university
+  ]
+  ;  make some of them large firms, with extra initial capital
+  ask n-of round ((big-universities-percent / 100) * nUniversities) universities [ ;;bug fix for v 5-32: added /100
+    ;; n-of size agnetset/list => Randomly chose n agents
+    set capital initial-capital-for-big-universities
+  ]
+  ask universities [ initialise-university ]
 end
 
 ; initialise all the firm's variables (except capital, previously set)
@@ -217,6 +286,28 @@ to initialise-firm
   set firm-number firm-number + 1
 end
 
+to initialise-university
+  set ih []
+  set inputs []
+  set research-direction "random"
+  set done-rad-research false
+  set partners no-turtles
+  set previous-partners no-turtles
+  set suppliers []
+  set customers []
+  set new-ih? true
+  set selling? false
+  set trading? false
+  set net nobody
+  set hq? false
+  set age 0
+  set capabilities []              ; create a null kene
+  set abilities []
+  set expertises []
+  set number university-number
+  set university-number university-number + 1
+end
+
 ; set up a single firm with all its required knowledge
 
 to setup-firm
@@ -224,6 +315,13 @@ to setup-firm
   make-innovation-hypothesis
   make-advert
   manufacture
+end
+
+to setup-university
+  make-kene
+  make-innovation-hypothesis
+  make-advert
+  manufacture  
 end
 
 to go
@@ -269,8 +367,25 @@ to make-kene
   ;; the length is proportional to the log of 1 +  the capital divided
   ;; by the capital-knowledge-ratio
 
-  let cap-capacity ln (1 + (capital / capital-knowledge-ratio))
-  if cap-capacity < 5 [ set cap-capacity 5 ]
+  file-open ("breed.txt") ; for debug
+  let cap-capacity 0
+  
+  if breed = firms [
+      set cap-capacity ln (1 + (capital / capital-knowledge-ratio))
+      if cap-capacity < 5 [ set cap-capacity 5 ]
+      file-print "firm"
+   ] 
+  
+  ;; Added by Yao-Ching
+  if breed = universities [
+      ; cap-capacity is two times of firm's
+      set cap-capacity ln (1 + (capital / capital-knowledge-ratio)) * nTimesOfFirmCapabilities
+      if cap-capacity < 5 [ set cap-capacity 5 * nTimesOfFirmCapabilities ]  
+      file-print "university"
+   ]
+   
+   file-close
+
 
   ; fill the capability vector with capabilities.  These are integers
   ; between 1 and nCapabilities, such that no number is repeated
@@ -279,6 +394,8 @@ to make-kene
     if not member? candidate-capability capabilities [
       set capabilities fput candidate-capability capabilities
     ]
+    ;; show member? 2 [1 2 3]   show member? turtle 0 turtles
+    ;; fput => Adds item to the beginning of a list and reports the new list.  // set mylist fput 2 mylist
   ]
   ; now fill the ability and expertise vectors
   ; with real numbers randomly chosen from 0 .. <10 for abilities
@@ -288,6 +405,9 @@ to make-kene
     set expertises fput ((random 10) + 1) expertises
   ]
 end
+
+
+
 
 ; an innovation hypothesis is a vector of locations in the kene.  So, for example, an IH
 ; might be [1 3 4 7], meaning the second (counting from 0 as the first), fourth, fifth
@@ -1319,52 +1439,9 @@ to plot-degree-distribution
   ]
 end
 
-to create-output-file
-
-  file-open (word number ".txt") ; open file to write
-  file-write "capabilities   "
-  file-write "abilities   "
-  file-write "expertises   "
-  file-write "ih   "
-
-  file-write "new-ih?  "
-  file-write "advert  "
-
-  file-write "research-direction  "
-
-  file-write "ability-to-research  "
-
-  file-write "done-rad-research  "
-  file-write "partners  "
-  file-write "previous-partners  "
-
-  file-write "suppliers  "
-  file-write "customers  "
-
-  file-write "product  "
-  file-write "inputs  "
-  file-write "quality  "
-  file-write "selling?  "
 
 
-  file-write "trading?  "
-  file-write "total-cost  "
-  file-write "price  "
-  file-write "sales  "
-  file-write "last-reward  "
-
-  file-write "capital  "
-  file-write "net  "
-  file-write "age  "
-  file-write "hq?  "
-
-    file-print ""
-
-  file-close
-
-end
-
-
+;; Added by Yao-Ching
 to out-put-attributes
   file-open (word "output/" number ".txt") ; open file to write
 
@@ -1414,13 +1491,12 @@ to out-put-attributes
 end
 
 ;; end of code
-
 @#$#@#$#@
 GRAPHICS-WINDOW
-320
-50
-565
-268
+630
+45
+875
+263
 89
 89
 1.045
@@ -1461,9 +1537,9 @@ NIL
 1
 
 PLOT
-635
+935
 10
-939
+1239
 160
 Population
 Time
@@ -1480,9 +1556,9 @@ PENS
 "Networks" 1.0 0 -10899396 true "" ""
 
 PLOT
-635
+935
 317
-938
+1238
 467
 Collaboration
 Time
@@ -1526,10 +1602,10 @@ partnership-strategy
 1
 
 PLOT
-635
-164
-937
-314
+935
+165
+1237
+315
 Transactions
 Time
 %
@@ -1729,10 +1805,10 @@ PENS
 "Age" 1.0 1 -10899396 true "" ""
 
 PLOT
-260
-75
-610
-230
+570
+70
+920
+225
 Artefacts
 NIL
 NIL
@@ -1850,10 +1926,10 @@ Networking
 -1000
 
 PLOT
-260
-225
-610
-425
+570
+220
+920
+420
 Sales
 Time
 Mean value per firm
@@ -1888,7 +1964,7 @@ success-threshold
 success-threshold
 0
 10000
-1000
+995
 1
 1
 NIL
@@ -1896,14 +1972,14 @@ HORIZONTAL
 
 SLIDER
 20
-405
+430
 240
-438
+463
 reward-to-trigger-start-up
 reward-to-trigger-start-up
 0
 2000
-1200
+1201
 1
 1
 NIL
@@ -1958,6 +2034,66 @@ SKIN (Simulating Knowledge Dynamics in Innovation Networks) 5.31
 11
 0.0
 1
+
+SLIDER
+255
+75
+465
+108
+nUniversities
+nUniversities
+0
+1000
+492
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+255
+215
+457
+248
+big-universities-percent
+big-universities-percent
+0
+100
+50
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+255
+255
+457
+288
+initial-capital-university
+initial-capital-university
+0
+100000
+1000
+1000
+1
+NIL
+HORIZONTAL
+
+SLIDER
+255
+35
+467
+68
+nTimesOfFirmCapabilities
+nTimesOfFirmCapabilities
+0
+100
+29
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
