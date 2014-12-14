@@ -57,6 +57,8 @@ globals [
   maxQuality                     ; maximum initial quality of any product
   max-ih-length                  ; maximum length of an innovation hypothesis
   nCapabilities                  ; global number of capabilities possible
+  nCapabilities-university       ;; Added by Yao-Ching
+  
   low-capital-threshold          ; if a firm's capital is below this, it does radical
                                  ;    research
   capital-knowledge-ratio        ; proportionality between kene length and firm's
@@ -70,6 +72,9 @@ globals [
   max-partners                   ; the maximum number of potential partners a firm searches for
   raw-materials                  ; the inputs that come from the environment are
                                  ;      numbered 0 up to (but not including) this
+  raw-materials-university       ; the inputs that come from the environment are
+                                 ;      numbered 0 up to (but not including) this
+                                 ;; Added by Yao-Ching
   end-products                   ; the outputs that are bought by the end-user (final consumers) are
                                  ;      numbered greater than end-products
                                  
@@ -125,7 +130,9 @@ firms-own [
   age                             ; steps since the firm was started
   hq?                             ; is this a firm representing the headquarters of a network?
 
-  number
+  number                          ; number of firm
+  
+  collaborate-universities        ; a list of university that firm collaborate
 ]
 
 networks-own [
@@ -155,7 +162,7 @@ universities-own [
   suppliers                       ; list of suppliers
   customers                       ; list of customers
 
-  ;product
+  ;; product
   product                         ; the product produced by this firm (a number)
   inputs                          ; the products required as inputs to make the product
   quality                         ; the quality of the product
@@ -168,7 +175,7 @@ universities-own [
   sales                           ; the total amount received from selling in this round
   last-reward                     ; the profit received by the firm last time
 
-  ;university
+  ;; university
   capital                         ; the amount of capital of the university
   net                             ; the network I am a member of
   age                             ; steps since the university was started
@@ -200,6 +207,8 @@ to setup
   ;   set reward-to-trigger-start-up 950       ; set with an interface slider
   set max-ih-length 9                          ; innovation hypothesis
   set nCapabilities 1000
+  set nCapabilities-university nCapabilities * nTimesOfFirmCapabilities  ;; Added By Yao-Ching
+  
   ;   set attractiveness-threshold 0.4         ; set with an interface slider
   set low-capital-threshold 1000
   set capital-knowledge-ratio 20 ;50
@@ -217,6 +226,7 @@ to setup
   set raw-cost 1
   set final-price 10 * maxPrice
   set raw-materials floor nProducts * in-out-products-percent / 100
+  set raw-materials-university floor nProducts * in-out-products-percent / 100  ;; Added by Yao-Ching
   set end-products  ceiling nProducts * ( 100 - in-out-products-percent) / 100
 
   set firm-number 0
@@ -327,19 +337,33 @@ end
 to go
   if maxPrice = 0 [ setup ]  ; if the setup button hasn't been pressed, do it now
   if count firms = 0 [ stop ]       ; stop if all firms have gone bankrupt
-
-  ask firms [
-    if partnership-strategy != "no partners" [ collaborate ]
+  
+  ask universities [
     do-research
     manufacture
     pay-taxes
   ]
+  
+  find-universities  ;; Firm find the university to collaborate
+                     ;; Added by Yao Ching
+  
+
+  ask firms [
+    if partnership-strategy != "no partners" [ collaborate ]
+    collaborate-with-university
+    do-research
+    manufacture
+    pay-taxes
+  ]
+  
   find-suppliers
   buy
+  
   ask firms [
     take-profit
     adjust-price
   ]
+  
   create-start-ups
   create-nets
   show-plots
@@ -390,7 +414,15 @@ to make-kene
   ; fill the capability vector with capabilities.  These are integers
   ; between 1 and nCapabilities, such that no number is repeated
   while [length capabilities < cap-capacity] [
-    let candidate-capability random nCapabilities + 1
+    let candidate-capability 0
+    ;; Added by Yao-Ching
+    ; identified the type of breed and set different nCapabilities
+    if breed = firms [
+      set candidate-capability random nCapabilities + 1
+    ]
+    if breed = universities [
+      set candidate-capability random nCapabilities-university + 1
+    ]
     if not member? candidate-capability capabilities [
       set capabilities fput candidate-capability capabilities
     ]
@@ -592,11 +624,33 @@ to find-suppliers
   set previous-possible-firms no-turtles
   while [ possible-firms != previous-possible-firms ] [
     set previous-possible-firms possible-firms
-  set possible-firms possible-firms with [ profitable possible-firms ]
+    set possible-firms possible-firms with [ profitable possible-firms ]  ;; also set the supplier in this line (profitable possible-firms)
   ]
   ask firms [set trading? false ]
   ask possible-firms [set trading? true ]
 end
+
+;; Add by Yao-Ching
+;; observer procedure
+
+to find-universities
+  ask universities [set selling? false]
+  let possible-universities universities with [ inputs-available-university universities ]
+  let previous-possible-universities no-turtles
+  while [ possible-universities != previous-possible-universities ] [
+    set previous-possible-universities possible-universities
+    ; discard firms that make products no one wants to buy
+    set possible-universities possible-universities with [ product-desired possible-universities ]
+    ; discard firms that require inputs that no one is able to supply
+    set possible-universities possible-universities with [ inputs-available-university possible-universities ]
+  ]
+  
+  ask possible-universities [ set selling? true ]
+  ask universities [ set trading? false ]
+  ask possible-universities [ set trading? true ]  
+end
+
+
 
 ;; return true if at least one of the firms in the market (an agentset)
 ;;  would like to buy my product (or the product could be bought by
@@ -622,6 +676,16 @@ to-report inputs-available [ market ]
     ; market - if neither, at least one of the inputs required is not available
     if ? >= raw-materials and not any? market with [ ? = product ]  [ report false ]
   ]
+  report true
+end
+
+
+;; return true if there is at least one university that can wait to supply firm to use his intelligence 
+;university procedure
+to-report inputs-available-university [ market ]
+  foreach inputs [
+    if ? >= raw-materials-university and not any? market with [ ? = product ] [ report false]
+   ]
   report true
 end
 
