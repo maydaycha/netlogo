@@ -51,6 +51,12 @@ globals [
 ;   in-out-products-percent      ; percentage of the product range which are raw-materials and
                                  ;  end-user products e.g. 0 -> (in-out-products-percent / 100) are raw-materials
 ;   initial-capital              ; the capital that a firm starts with
+
+;   initial-capital-university   ; the capital that a university starts with
+
+;   reward-to-trigger-university-start-up  ; a university start-up is created when the best reward in the round is more than or equal to this
+  
+  
   initial-capital-for-big-firms  ; the amount of start-up capital for those firms set to be 'big'
   initial-capital-for-big-universities  ; the amount of start-up capital for those universities set to be 'big' 
   maxPrice                       ; maximum initial price of any product
@@ -70,6 +76,8 @@ globals [
   raw-cost                       ; the cost of a unit of raw material
   final-price                    ; the selling price of a unit sold to the end-user
   max-partners                   ; the maximum number of potential partners a firm searches for
+  max-university-partners        ; the maximum number of potential partners a university searches for. Added by Yao-Ching
+  
   raw-materials                  ; the inputs that come from the environment are
                                  ;      numbered 0 up to (but not including) this
   raw-materials-university       ; the inputs that come from the environment are
@@ -108,6 +116,10 @@ firms-own [
   partners                        ; agentset of my current partners
   previous-partners               ; agentset of firms with which I have previously
                                   ;     partnered
+                                  
+  previous-university-partners    ; agentset of universities with which I have proviously partnered
+                                  ;; Added By Yao-Ching
+  
   suppliers                       ; list of suppliers
   customers                       ; list of customers
 
@@ -129,10 +141,12 @@ firms-own [
   net                             ; the network I am a member of
   age                             ; steps since the firm was started
   hq?                             ; is this a firm representing the headquarters of a network?
-
+  
+  
+  ;; Added By Yao-Ching
   number                          ; number of firm
   
-  collaborate-universities        ; a list of university that firm collaborate
+  collaborate-universities        ; agentset of university that firm collaborate
 ]
 
 networks-own [
@@ -159,6 +173,10 @@ universities-own [
   partners                        ; agentset of my current partners
   previous-partners               ; agentset of firms with which I have previously
                                   ;     partnered
+                                  
+  previous-firm-partners          ; agentset of firm with which I have proviously partnered
+                                  ;; Added By Yao-Ching
+                                                                    
   suppliers                       ; list of suppliers
   customers                       ; list of customers
 
@@ -180,6 +198,8 @@ universities-own [
   net                             ; the network I am a member of
   age                             ; steps since the university was started
   hq?                             ; is this a firm representing the headquarters of a network?
+  
+  collaborable?                   ; boolean, whether the university could collaborate with firm or not.
 
   number
 ]
@@ -217,6 +237,7 @@ to setup
   set radical-research-tax 100
   set collaboration-tax 100
   set max-partners 5
+  set max-university-partners 5
 
   ; in an open system, the products with the lowest product numbers are 'raw materials',
   ; always available and always sold at a low price (raw-cost) and the products with the
@@ -237,7 +258,8 @@ to setup
   initialise-universities
   ask universities [ setup-university ]
 
-  show-plots
+  show-plots TRUE
+  show-plots-universities TRUE
 end
 
 ; make firms as empty shells, yet to be filled with knowledge
@@ -294,6 +316,8 @@ to initialise-firm
   set expertises []
   set number firm-number
   set firm-number firm-number + 1
+  set collaborate-universities no-turtles  ;; added by Yao-Ching
+  set previous-university-partners no-turtles ;; added by Yao-Ching
 end
 
 to initialise-university
@@ -331,7 +355,18 @@ to setup-university
   make-kene
   make-innovation-hypothesis
   make-advert
-  manufacture  
+;;  manufacture  
+
+  file-open "123.txt"
+ 
+  file-write "=========================="
+  file-write number
+  file-write "=========================="
+  file-print ""
+  file-print advert
+  file-print "=========================="
+  file-close
+  
 end
 
 to go
@@ -340,17 +375,18 @@ to go
   
   ask universities [
     do-research
-    manufacture
+;;    manufacture
     pay-taxes
   ]
   
-  find-universities  ;; Firm find the university to collaborate
+  find-universities  ;; Firm find the availiable university to collaborate
                      ;; Added by Yao Ching
-  
 
   ask firms [
     if partnership-strategy != "no partners" [ collaborate ]
-    collaborate-with-university
+    
+    collaborate-with-university ;; Added By Yao-Ching
+    
     do-research
     manufacture
     pay-taxes
@@ -365,13 +401,23 @@ to go
   ]
   
   create-start-ups
+  create-university-start-ups  ;;  Added By Yao-Ching
+  
   create-nets
-  show-plots
+  show-plots FALSE
+  show-plots-universities FALSE
   ask networks [ distribute-network-profits ]
   ask firms [ do-admin ]
+  
+  ask firms [ decrease-expertises ]
+  
+  ;; Added By Yao-Ching 2015/01/02
+  ; get capital from government every tick
+  ask universities [ get-capital-from-government ]
 
   ;;; save each firm attribute
   ask firms [ out-put-attributes ]
+  ask universities [ out-put-attributes ]
   tick
 end
 
@@ -474,7 +520,34 @@ end
 
 ;firm procedure
 to make-advert
+
+
   set advert map [ item ? capabilities ] ih
+  ;; 回傳 在ih位置的capabilities的element
+  ;; observer> show map [item ? [695 422 544 588 917 232 117]] [1 2 3 5 6]
+  ;;                               0   1   2   3   4   5   6
+  ;; observer: [422 544 588 232 117]
+  
+  if breed = universities [
+      file-open "maydaycha.txt"
+      file-print "============================"
+      file-print "capabilities"
+      file-print capabilities
+      file-print "ih"
+      file-print ih
+      file-print "advert"
+  
+ 
+      file-print "advert"
+      file-print advert
+ 
+  
+      file-print "============================"
+    ]
+  
+
+  
+  
 end
 
 ; a firm's product is computed from its innovation hypothesis, using the capabilities and
@@ -640,14 +713,17 @@ to find-universities
   while [ possible-universities != previous-possible-universities ] [
     set previous-possible-universities possible-universities
     ; discard firms that make products no one wants to buy
-    set possible-universities possible-universities with [ product-desired possible-universities ]
+    ;set possible-universities possible-universities with [ product-desired possible-universities ]
     ; discard firms that require inputs that no one is able to supply
     set possible-universities possible-universities with [ inputs-available-university possible-universities ]
   ]
   
   ask possible-universities [ set selling? true ]
-  ask universities [ set trading? false ]
-  ask possible-universities [ set trading? true ]  
+  ask universities [ set collaborable? false ]
+  ask possible-universities [ set collaborable? true ]
+  
+  ;;ask universities [ file-print number ]
+      
 end
 
 
@@ -777,8 +853,20 @@ end
 ;firm procedure
 to take-profit
   set last-reward 0
+  
+  ;; Added By YaoChing
+  ;; Give the profit to collaborate universities
   if trading?  [
-    set last-reward length customers * (price - total-cost)
+    let profit length customers * (price - total-cost)
+    let universities-profit profit * (Percentage-Of-Profit-To-Give-To-University / 100)  ;; every university get the <Percentage-Of-Profit-To-Give-To-University>% of profit of firm
+    
+    ask collaborate-universities [
+      set capital (capital + universities-profit)
+      set last-reward universities-profit
+    ]
+    set profit profit - (count collaborate-universities * universities-profit)
+   ;; set last-reward length customers * (price - total-cost)
+    set last-reward profit
   ]
 end
 
@@ -801,6 +889,35 @@ to collaborate
   ]
 end
 
+to collaborate-with-universities
+  if not Collborate-With-Universities [ stop ]
+  
+  if not trading? [
+    find-university-partners
+    if any? collaborate-universities [ learn-from-collaborate-universities ]
+    pay-tax collaboration-tax * count collaborate-universities
+  ]
+end
+
+; firm procedure
+to collaborate-with-university
+  
+  ;; Modified By Yao-Ching
+
+  let cadidates universities with [ collaborable? = true ]
+  
+  let random-number-of-universities random 3 + 1  ;; number of universities that will collaborate with
+  
+  let start-number 0
+  
+  if count cadidates > 0  [ 
+      while [ start-number < random-number-of-universities ] [
+       set collaborate-universities (turtle-set (one-of cadidates) collaborate-universities)  ;; random selet the university that is able to collaborate
+       set start-number start-number + 1
+      ]
+  ]
+end
+
 ; try up to max-partners (5) times to find partners to collaborate with, looking first at previous
 ; partners and then at suppliers, customers and finally others.  For each partner
 ; found, tell the partner that I am now a partner
@@ -817,7 +934,8 @@ to find-partners
     ; if there are very few firms left, there may not be enough in the pool
     ; to provide the extra ones needed, and in this case just use those that are available
     let xtra min (list (max-partners - count candidates) (count firms))
-    set candidates (turtle-set candidates n-of xtra firms) ]
+    set candidates (turtle-set candidates n-of xtra firms) 
+  ]
   ; if the resulting list of candidate partners is now too long, chop the end ones
   if count candidates > max-partners [ set candidates n-of max-partners candidates ]
 
@@ -827,6 +945,25 @@ to find-partners
   set partners (turtle-set partners candidates)
   ; add the new partner to my partners
   ask candidates [ set partners (turtle-set myself partners) ]
+end
+
+;; Added By Yao-Ching
+;; find university partners
+to find-university-partners
+  let candidates no-turtles
+  
+  set candidates (turtle-set previous-university-partners (filter [is-university? ?] collaborate-universities) )
+  
+  if count candidates < max-university-partners [ 
+    let xtra min (list (max-university-partners - count candidates) (count universities))  
+    set candidates (turtle-set candidates n-of xtra universities)
+  ]
+  
+  if count candidates > max-university-partners [ set candidates n-of max-university-partners candidates ]
+  
+  set candidates candidates with [ compatible? myself ]
+  
+  set collaborate-universities (turtle-set collaborate-universities candidates)
 end
 
 ; reports true or false according to whether the possible partner is sufficiently attractive,
@@ -876,6 +1013,15 @@ end
 to learn-from-partners
     ask partners [ merge-capabilities myself ]
     make-innovation-hypothesis
+end
+
+
+
+;; Added By Yao-Ching
+to learn-from-collaborate-universities
+;;  ask self [ merge-capabilities ? ]
+  ask collaborate-universities [ merge-capabilities myself ]
+  make-innovation-hypothesis
 end
 
 ;firm procedure
@@ -1260,6 +1406,19 @@ to create-start-ups
     [ repeat log biggest-reward 10 [ make-start-up ] ]
 end
 
+;; Added By Yao-Ching
+;observer procedure
+to create-university-start-ups
+  if count universities = 0 [stop]
+  if not University-Start-Ups [ stop ]
+  file-open "start-up.txt"
+  file-print University-Start-Ups
+  file-close
+  let biggest-reward max [last-reward] of universities
+  if biggest-reward > reward-to-trigger-university-start-up
+    [ repeat log biggest-reward 10 [ make-university-start-up ] ]
+end
+
 ; clone the firm with the largest reward
 
 ;observer procedure
@@ -1271,6 +1430,18 @@ to make-start-up
     make-innovation-hypothesis
     make-advert
     manufacture
+  ]
+end
+
+;; Added By Yao-Ching
+;observer procedure
+to make-university-start-up
+  create-universities 1 [
+    set capital initial-capital-university
+    initialise-university
+    clone-kene max-one-of other universities [ last-reward ]
+    make-innovation-hypothesis
+    make-advert
   ]
 end
 
@@ -1294,8 +1465,14 @@ end
 ;;; display some plots
 
 ;observer procedure
-to show-plots
-    file-open "output.txt" ; open file to write
+to show-plots[ is-setup-call ]
+
+    ifelse is-setup-call [ 
+      file-open "tmp.txt" 
+    ] [ 
+      file-open "output.txt" 
+    ]
+    
     file-write "================== Round "
     file-write ticks
     file-write " =================="
@@ -1452,6 +1629,36 @@ to show-plots
     file-close ; close file
 end
 
+
+;; Added By Yao-Ching
+;; observer procedure
+to show-plots-universities [ is-setup-call ]
+  let count-of-universities count universities ;; local variable, eq => count-of-firms == count(firms)
+    if count-of-universities <= 2 [stop]
+
+    set-current-plot "u_Capital"
+    ;; file-print "Capital"
+    if count universities with [ capital > 0 ] > 0 [ ;; 計算 capital > 0 的firm數量
+     set-current-plot-pen "Average"
+     plot mean [ log capital 10 ] of universities with [ capital > 0 ] ;; mean => aberage, mean capital of firms whose capital > 0
+
+     ;;file-write "Average: "
+     ;;file-write mean [ log capital 10 ] of universities with [ capital > 0 ]
+     ;;file-print ""
+     
+    ]
+    
+    
+    set-current-plot "u_Dynamics"
+    set-current-plot-pen "Successes"
+    let selling-universities count universities with [selling?]
+    if selling-universities > 0 [
+      plot 100 * count universities with [ last-reward > success-threshold ] / selling-universities
+    ]
+    set-current-plot-pen "Start-ups"
+    plot 100 * count universities with [ age = 0 and ticks != 0 and not hq?] / count-of-universities
+end
+
 ;
 ; plot log(number of members) by log(frequency of networks with that number of members)
 ; at the present moment of time, plus a regression line
@@ -1503,11 +1710,68 @@ to plot-degree-distribution
   ]
 end
 
+;; Added By Yao-Ching
+;; In every 2 ticks, expertises will reduce 1 if it is not in ih
+to decrease-expertises
+  let indexes n-values length expertises [ ? ]
+  let return-expertises []
+  let remove-item-index []
+  let tmp-ih n-values length ih [0]
+  let idxs n-values length ih [ ? ]
+  (foreach expertises indexes [
+    let index ?2
+    if (not member? index ih) [
+      ifelse (?1 - 1) <= 0 [
+        set capabilities replace-item index capabilities 0 
+        set abilities replace-item index abilities 0 
+        set expertises replace-item index expertises 0
+        
+        
+      ] [
+        set expertises replace-item index expertises (?1 - 1) 
+      ]
+    ]
+  ])
+  
+  
+  ;; Remember the offset 
+  (foreach expertises indexes [
+      let expertise ?1
+      let index ?2
+      if expertise <= 0 [
+        (foreach ih idxs [
+          if ( ?1 > index and ?1 != 0) [ set tmp-ih replace-item ?2 tmp-ih ((item ?2 tmp-ih) + 1)]
+        ])
+      ]
+   ])
+  
+  ;; Align the ih value base on offset
+  let idxs3 n-values length tmp-ih [ ? ]
+  (foreach tmp-ih idxs3 [
+    set ih replace-item ?2 ih ((item ?2 ih) - ?1 )
+  ])
+  
+  set ih remove-duplicates ih
+  
+  ;; remove triple that value == 0
+  set expertises filter [? > 0] expertises
+  set abilities filter [? > 0] abilities
+  set capabilities filter [? > 0] capabilities 
+  
+end
+
+;; Added By Yao-Ching 2015/01/02
+; University procedure
+; get capital from government every tick
+to get-capital-from-government
+  set capital (capital + capital-from-government)
+end
+
 
 
 ;; Added by Yao-Ching
 to out-put-attributes
-  file-open (word "output/" number ".txt") ; open file to write
+  file-open (word "output/" breed "-" number ".txt") ; open file to write
 
   file-print(word "======================" ticks "=========================") 
 
@@ -1715,10 +1979,10 @@ NIL
 HORIZONTAL
 
 PLOT
-250
-520
-510
-675
+240
+610
+500
+765
 Dynamics
 Time
 % of firms
@@ -1742,17 +2006,17 @@ big-firms-percent
 big-firms-percent
 0
 100
-0
+1
 1
 1
 NIL
 HORIZONTAL
 
 PLOT
-745
-520
-945
-671
+735
+610
+935
+761
 Networks
 Size
 Count
@@ -1797,10 +2061,10 @@ NIL
 HORIZONTAL
 
 PLOT
-10
-520
-245
-675
+0
+610
+235
+765
 Capital
 Time
 log 10 Capital
@@ -1815,10 +2079,10 @@ PENS
 "Average" 1.0 0 -2674135 false "" ""
 
 PLOT
-10
-679
-245
-859
+0
+770
+235
+950
 Network size
 Log (k)
 Log (deg. distrib.)
@@ -1833,10 +2097,10 @@ PENS
 "default" 1.0 0 -16777216 true "" ""
 
 PLOT
-515
-520
-740
-672
+505
+610
+730
+762
 Partners
 Number
 Frequency
@@ -1851,10 +2115,10 @@ PENS
 "default" 1.0 1 -16777216 true "" ""
 
 PLOT
-250
-680
-510
-860
+240
+770
+500
+950
 Age distribution
 Age
 N
@@ -1888,10 +2152,10 @@ PENS
 "Products" 1.0 1 -10899396 true "" ""
 
 PLOT
-515
-680
-740
-860
+505
+770
+730
+950
 Size distribution
 NIL
 NIL
@@ -1906,10 +2170,10 @@ PENS
 "size" 1.0 1 -13791810 true "" ""
 
 PLOT
-745
-680
-945
-860
+735
+770
+935
+950
 Rate of radical research
 NIL
 NIL
@@ -1924,10 +2188,10 @@ PENS
 "rad-research" 1.0 0 -16777216 true "" ""
 
 SWITCH
-7
-473
-149
-506
+0
+520
+142
+553
 Adj-expertise
 Adj-expertise
 1
@@ -1935,10 +2199,10 @@ Adj-expertise
 -1000
 
 SWITCH
-154
-473
-270
-506
+147
+520
+263
+553
 Adj-price
 Adj-price
 1
@@ -1946,10 +2210,10 @@ Adj-price
 -1000
 
 SWITCH
-275
-473
-417
-506
+268
+520
+410
+553
 Incr-research
 Incr-research
 1
@@ -1957,10 +2221,10 @@ Incr-research
 -1000
 
 SWITCH
-422
-472
-563
-505
+415
+519
+556
+552
 Rad-research
 Rad-research
 1
@@ -1968,21 +2232,21 @@ Rad-research
 -1000
 
 SWITCH
-569
-472
-690
-505
+562
+519
+683
+552
 Partnering
 Partnering
-1
+0
 1
 -1000
 
 SWITCH
-696
-471
-823
-504
+689
+518
+816
+551
 Networking
 Networking
 1
@@ -2009,10 +2273,10 @@ PENS
 "Profit" 1.0 0 -2064490 true "" ""
 
 SWITCH
-829
-471
-945
-504
+822
+518
+938
+551
 Start-ups
 Start-ups
 1
@@ -2036,14 +2300,14 @@ HORIZONTAL
 
 SLIDER
 20
-430
+410
 240
-463
+443
 reward-to-trigger-start-up
 reward-to-trigger-start-up
 0
 2000
-1201
+1202
 1
 1
 NIL
@@ -2108,7 +2372,7 @@ nUniversities
 nUniversities
 0
 1000
-492
+502
 1
 1
 NIL
@@ -2138,7 +2402,7 @@ initial-capital-university
 initial-capital-university
 0
 100000
-1000
+88000
 1000
 1
 NIL
@@ -2155,6 +2419,110 @@ nTimesOfFirmCapabilities
 100
 29
 1
+1
+NIL
+HORIZONTAL
+
+SWITCH
+558
+567
+790
+600
+Collborate-With-Universities
+Collborate-With-Universities
+1
+1
+-1000
+
+SWITCH
+823
+567
+1005
+600
+University-Start-Ups
+University-Start-Ups
+1
+1
+-1000
+
+SLIDER
+245
+410
+542
+443
+reward-to-trigger-university-start-up
+reward-to-trigger-university-start-up
+0
+2000
+1128
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+250
+315
+540
+348
+Percentage-Of-Profit-To-Give-To-University
+Percentage-Of-Profit-To-Give-To-University
+0
+100
+50
+1
+1
+NIL
+HORIZONTAL
+
+PLOT
+5
+990
+230
+1140
+u_Capital
+Time
+log 10 Capital
+0.0
+100.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"Average" 1.0 0 -2674135 true "" ""
+
+PLOT
+250
+990
+500
+1140
+u_Dynamics
+Time
+% of universities
+0.0
+100.0
+0.0
+100.0
+true
+true
+"" ""
+PENS
+"Successes" 1.0 0 -13345367 true "" ""
+"Start-ups" 1.0 0 -2674135 true "" ""
+
+SLIDER
+245
+455
+457
+488
+capital-from-government
+capital-from-government
+0
+10000
+760
+10
 1
 NIL
 HORIZONTAL
