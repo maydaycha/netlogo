@@ -33,13 +33,15 @@
 ;   A firm cannot be a member of more than 1 network at any one time
 ;   In the plots, networks are included in the count of firms (but not partnerships)
 
+ extensions [ nw ]
+
 
 ; globals preceded by ';' below are set by sliders, not by code
 globals [
 ;   nFirms                       ; the number of firms initially
 ;   nProducts                    ; the number of products that are possible
 ;   nInputs                      ; the maximum number of inputs that a firm can require
-;   n-big-firms                  ; number of firms with 10 times initial capital of rest
+;   n-big-firms                 ; number of firms with 10 times initial capital of rest
 ;   reward-to-trigger-start-up   ; a start-up is created when the best reward in the
 ;                                   round is more than or equal to this
 ;   attractiveness-threshold     ; how attractive a firm must be before it becomes a
@@ -206,6 +208,14 @@ universities-own [
 
 
 to setup
+  clear-all
+  crt 2 [create-links-with other turtles]
+  nw:set-context turtle-set turtles link-set links
+  show map sort nw:get-context
+  ;create-turtles 3 [ create-links-with other turtles ]
+  ;nw:set-context turtles links
+  ;show map sort nw:get-context
+  
   no-display
   ;; (for this model to work with NetLogo's new plotting features,
   ;; __clear-all-and-reset-ticks should be replaced with clear-all at

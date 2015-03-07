@@ -1,0 +1,34 @@
+*~
+*.orig
+/jung-src/
+/jgrapht-src/
+/project/target/
+/target/
+classes/
+*.jar
+*.gz
+*.zip
+
+# eclipse files
+.project
+.classpath
+.cache
+.settings
+.texlipse
+
+# latex temp files
+*.log
+*.aux
+
+# intellij
+.idea*
+
+# vim
+*.swp
+
+# ensime
+.ensime*
+
+# emacs
+\#*\#
+\.\#*
