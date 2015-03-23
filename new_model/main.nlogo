@@ -250,7 +250,12 @@ to go
       let potential-firms screening_for_potential_actors                  ;; find the firms that have potential technology to implement research
 ;;      show word "potential-universities: " potential-universities
 ;;      show word "potential-firms: " potential-firms
-      matching potential-universities potential-firms                     ;; start matching procedure
+      ifelse (random 2) > 0 [
+        matching potential-firms potential-universities                     ;; start matching procedure
+      ] [
+        matching potential-universities potential-firms                     ;; start matching procedure
+      ]
+
       
     ]
     
@@ -483,6 +488,7 @@ end
 ;; Takes a centrality measure as a reporter task, runs it for all nodes
 ;; and set labels, sizes and colors of turtles to illustrate result
 to centrality [ measure ]
+  show measure
   nw:set-context turtles partners
   ask turtles [
     let res (runresult measure) ;; run the task for the turtle
@@ -661,6 +667,8 @@ to matching [potential-sources potential-targets]
           ;; create link through intermediary
           let link-color (list (random 256) (random 256) (random 256))
           
+          show(word "matching source: " current-source ", dest: " current-target )
+          
           ask current-source [ create-partner-to current-intermediary [ set color link-color ] ]
           ask current-intermediary [ create-partner-to current-target [ set color link-color ] ]
         ]
@@ -737,19 +745,19 @@ end
 
 ;; report whether objective partner want to collaborate with him or not
 to-report desire-to-collaborate?
-  let x random 10
-  ifelse x <= (probability-of-accepting-collaboration - 1) [report true] [report false]
+  let x random 100
+  ifelse x < (probability-of-accepting-collaboration) [report true] [report false]
 end
 
 ;; report whether two agent will collaborate successfully or not
 to-report confirm-to-collaborate?
-  let x random 10
-  ifelse x <= (probability-of-confirm-collaboration - 1) [report true] [report false]
+  let x random 100
+  ifelse x < (probability-of-confirm-collaboration) [report true] [report false]
 end
 
 to-report terminate-to-collaborate?
-  let x random 10
-  ifelse x <= (probability-of-terminate-collaboration - 1) [report true] [report false]
+  let x random 100
+  ifelse x < (probability-of-terminate-collaboration) [report true] [report false]
 end
 
 
@@ -1109,7 +1117,7 @@ baseFriendCircleRadius
 baseFriendCircleRadius
 0
 sqrt (max-pxcor * max-pxcor + max-pycor * max-pycor)
-19
+8
 1
 1
 NIL
@@ -1135,46 +1143,46 @@ NIL
 SLIDER
 89
 330
-376
+396
 363
 probability-of-accepting-collaboration
 probability-of-accepting-collaboration
 0
-10
+100
 4
 1
 1
-NIL
+%
 HORIZONTAL
 
 SLIDER
 88
 381
-364
+383
 414
 probability-of-confirm-collaboration
 probability-of-confirm-collaboration
 0
-10
+100
 4
 1
 1
-NIL
+%
 HORIZONTAL
 
 SLIDER
 87
 444
-381
+392
 477
 probability-of-terminate-collaboration
 probability-of-terminate-collaboration
 0
-10
+100
+2
 1
 1
-1
-NIL
+%
 HORIZONTAL
 
 CHOOSER
@@ -1241,7 +1249,7 @@ matchingThreshold
 matchingThreshold
 0
 100
-5
+0
 1
 1
 %
