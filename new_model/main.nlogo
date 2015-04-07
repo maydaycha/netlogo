@@ -18,6 +18,13 @@
 ;;   8. random change the color of link
 
 
+;; 2015/03/24
+;;  1. Record the value of network level to output file
+;;  2. University will collaborate once it's research-maturity-level over threshold
+
+
+
+
 extensions [ nw ]
 
 
@@ -55,6 +62,8 @@ globals [
   ;   potentialResearchMaturityLevelThreshold   ; numeric. the threshold that determine whether add the university to collaboration candidate agentset or not
   ;   potentialCapitalThreshold                 ; numeric. the threshold that determine whether add the firm to collaboration candidate agentset or not
   ;   potentialNumberOfProductInPipelineThreshold        ; numeric. the threshold that determine whether add the firm to collaboration candidate agentset or not
+  
+  ;   attempToCollaborationThresholdForUniversity      ; numeric, the threshold that determine whether university will reqeust collaboration
   
 ]
 
@@ -227,11 +236,17 @@ to go
       ]
       
     ] [
-       request_for_development_collaboration(firms)
-       request_for_research_collaboration(other universities)
+    
+      if research-maturity-level >= attempToCollaborationThresholdForUniversity [
+         show(word self ": request collaboration")
+         request_for_development_collaboration(firms)
+         request_for_research_collaboration(other universities)
+       ]
     ]
     
     terminate_collaboration
+    
+    if increase-research-maturity-level? [ set research-maturity-level research-maturity-level + 1 ]
     
     
     set friend-circle-radius baseFriendCircleRadius ;; set friend-circle-radius again for real time adjusting
@@ -397,6 +412,14 @@ to closeness
   centrality task nw:closeness-centrality
 end
 
+to page-rank
+  centrality task nw:page-rank
+end
+
+;;to weighted-closeness
+ ;; centrality task nw:weighted-closeness-centrality
+;;end
+
 
 ;; observer procedure
 to initialise-firms
@@ -437,7 +460,7 @@ to initialise-universities
     set current-collaborators (turtle-set)
     set previous-collaborators (turtle-set)
     set reputation one-of (list "high" "medium" "low")
-    set research-maturity-level (random 100)   
+    set research-maturity-level (random 10)   
   ]
   
     ;  make some of them large firms, with extra initial capital
@@ -488,17 +511,20 @@ end
 ;; Takes a centrality measure as a reporter task, runs it for all nodes
 ;; and set labels, sizes and colors of turtles to illustrate result
 to centrality [ measure ]
-  show measure
   nw:set-context turtles partners
   ask turtles [
     let res (runresult measure) ;; run the task for the turtle
     ifelse is-number? res [
       set label precision res 2
       set size res ;; this will be normalized later
+;;      show label
+  ;;    show self
     ]
     [ ;; if the result is not a number, it is because eigenvector returned false (in the case of disconnected graphs
       set label res
       set size 1
+    ;;  show label
+;;      show self
     ]
   ]
   normalize-sizes-and-colors
@@ -576,7 +602,6 @@ end
 
 ;; firm procedure
 to accept_development_collaboration
-  
 end
 
 ;; university procedure
@@ -659,13 +684,13 @@ to matching [potential-sources potential-targets]
       let target-current-collaborators current-collaborators
       
       if not member? current-source current-collaborators [  ;; if they are not collaborating cuurently
-        let score compare_technical_domain ([technical-domain] of current-source) ([technical-domain] of current-target)
+        let score compare-technical-domain ([technical-domain] of current-source) ([technical-domain] of current-target)
         if score >= (matchingThreshold / 100) [  ;; collaborate
           set source-current-collaborators (turtle-set source-current-collaborators current-target)  ;; save the collaborator to current-collaborators list
           set target-current-collaborators (turtle-set target-current-collaborators current-source)  ;; save the collaborator to current-collaborators list
           
-          ;; create link through intermediary
-          let link-color (list (random 256) (random 256) (random 256))
+          ;; create link connect firm and university through intermediary
+          let link-color (list (random 256) (random 256) (random 256)) ;; set color of link
           
           show(word "matching source: " current-source ", dest: " current-target )
           
@@ -696,6 +721,8 @@ to record-attribute
   file-print(word "count university: " count universities)
   file-print(word "count TT: " count TTs)
   
+  nw:set-context turtles partners
+  
   file-print(word "############## Firm Attribute ############")
   let number 1
   ask firms [
@@ -707,6 +734,28 @@ to record-attribute
     file-print(word prefix "number-of-patent: " number-of-patent)
     file-print(word prefix "number-of-product-in-pipeline: " number-of-product-in-pipeline) 
     file-print(word prefix "technical-domain: " technical-domain)
+    
+    ;; record the betweenness
+    let res (runresult task nw:betweenness-centrality)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "betweenness-centrality: " res)
+    
+    ;; record the eigenvector
+    set res (runresult task nw:eigenvector-centrality)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "eigenvector-centrality: " res)
+    
+    
+    ;; record the closeness
+    set res (runresult task nw:closeness-centrality)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "closeness-centrality: " res)
+    
+    ;; record the page-rank
+    set res (runresult task nw:page-rank)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "page-rank: " res)
+    
     file-print ""
     set number number + 1     
   ]
@@ -721,6 +770,29 @@ to record-attribute
     file-print(word prefix "staff-number: " staff-number)
     file-print(word prefix "number-of-patent: " number-of-patent)
     file-print(word prefix "technical-domain: " technical-domain)
+    
+    ;; record the betweenness
+    let res (runresult task nw:betweenness-centrality)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "betweenness-centrality: " res)
+    
+    ;; record the eigenvector
+    set res (runresult task nw:eigenvector-centrality)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "eigenvector-centrality: " res)
+    
+    ;; record the closeness
+    set res (runresult task nw:closeness-centrality)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "closeness-centrality: " res)
+    
+    
+    ;; record the page-rank
+    set res (runresult task nw:page-rank)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "page-rank: " res)
+    
+    
     file-print ""
     set number number + 1     
   ]
@@ -735,6 +807,27 @@ to record-attribute
     file-print(word prefix "number-of-patent: " number-of-patent)
     file-print(word prefix "number-of-product-in-pipeline: " number-of-product-in-pipeline) 
     file-print(word prefix "technical-domain: " technical-domain)
+    
+    ;; record the betweenness
+    let res (runresult task nw:betweenness-centrality)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "betweenness-centrality: " res)
+    
+    ;; record the eigenvector
+    set res (runresult task nw:eigenvector-centrality)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "eigenvector-centrality: " res)
+    
+    ;; record the closeness
+    set res (runresult task nw:closeness-centrality)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "closeness-centrality: " res)
+    
+    ;; record the page-rank
+    set res (runresult task nw:page-rank)
+    if is-number? res [ set res precision res 2 ]
+    file-print(word prefix "page-rank: " res)
+    
     file-print ""
     set number number + 1     
   ]
@@ -762,7 +855,7 @@ end
 
 
 ;; report the common technical domain
-to-report compare_technical_domain [list1 list2]
+to-report compare-technical-domain [list1 list2]
   let score 0
   let denominator 0
   let length1 length list1
@@ -773,7 +866,16 @@ to-report compare_technical_domain [list1 list2]
   ]
   ;; 分數的算法 ＝  match的技術 / 較長的技術list  
   ;; ex list1 = [1 2], list2 = [1 2 3]. score = 2 / 3
-  report score / denominator
+  ;;report score / denominator
+  
+  ;; match的技術數量/雙方的技術數量和
+  report score / (list1 + list2)
+end
+
+;; report true if university is ready for increasing research-maturity-level
+to-report increase-research-maturity-level?
+  let x random 100  
+  ifelse x < increaseResearchMaturityLevelProbability [report true] [report false]
 end
   
 @#$#@#$#@
@@ -1025,21 +1127,21 @@ NIL
 HORIZONTAL
 
 SWITCH
-1041
-303
-1181
-336
-display-firms
-display-firms
-0
-1
--1000
-
-SWITCH
 1042
-350
-1221
-383
+367
+1182
+400
+display-firms
+display-firms
+0
+1
+-1000
+
+SWITCH
+1044
+416
+1223
+449
 display-universities
 display-universities
 0
@@ -1047,10 +1149,10 @@ display-universities
 -1000
 
 SWITCH
-1043
-398
-1174
-431
+1044
+461
+1175
+494
 display-TTs
 display-TTs
 0
@@ -1058,10 +1160,10 @@ display-TTs
 -1000
 
 BUTTON
-1063
-458
-1137
-491
+1047
+518
+1121
+551
 NIL
 redraw
 NIL
@@ -1124,10 +1226,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-1149
-103
-1212
-136
+1359
+59
+1422
+92
 NIL
 go2
 NIL
@@ -1253,6 +1355,53 @@ matchingThreshold
 1
 1
 %
+HORIZONTAL
+
+BUTTON
+1039
+267
+1135
+300
+NIL
+page-rank
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+87
+816
+407
+849
+increaseResearchMaturityLevelProbability
+increaseResearchMaturityLevelProbability
+0
+100
+50
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+460
+818
+802
+851
+attempToCollaborationThresholdForUniversity
+attempToCollaborationThresholdForUniversity
+0
+100
+12
+1
+1
+NIL
 HORIZONTAL
 
 @#$#@#$#@
