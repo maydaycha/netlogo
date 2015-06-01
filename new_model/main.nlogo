@@ -10,7 +10,7 @@
 ;; 2015/03/07
 ;;   1. Add Friend circle radius for every agent (means the coverage of agent)
 ;;   2. Add the reqeust and response collaboration behavior (firm and university)
-;;   3. Add the slider for adjusting the probability of successfully collaborating (probability-of-accepting-collaboration, probability-of-confirm-collaboration)
+;;   3. Add the slider for adjusting the probability of successfully collaborating 
 ;;   4. Add the slider for adjusting the probability of termination collaborating (probability-of-terminate-collaboration)
 ;;   5. Add terminate_collaboration procedure
 ;;   6. Add screening_for_technology_with_potential procedure (intermediary)
@@ -22,29 +22,43 @@
 ;;  1. Record the value of network level to output file
 ;;  2. University will collaborate once it's research-maturity-level over threshold
 
+;; 2015/04/07
+;;  1. Fix bug in save-record
+;;  2. Modified the collaboration behavior of firm and university
+;;  3. Add customize matrix output (csv file)
+
+
+;; 2015/04/14
+;;  1. sort agent in record-attribute
+;;  2. fix the color of link: source -> U(yellow)
+;;                            source -> F(lime)
+;;                            source -> TT -> target (cyan)
+;;  3. add friendRadius of each role of agent
+
+
+;; 2015/05/05
+;; 1. Assign value to parameters automaitcally
 
 
 
-extensions [ nw ]
+
+extensions [nw table pathdir]
 
 
 ;; the comment variables are set via user in the controll panel.
 globals [
   ;   nFirms                      ; the number of firms initially
-  ;   n-big-firms                 ; number of firms with 10 times initial capital of rest
   ;   big-firms-percent           ; the percentage of firms that will be big firm
   ;   initial-firm-capital        ; the capital that a firm starts with
   initial-capital-for-big-firms   ; the amount of start-up capital for those firms set to be 'big'
   
   
   ;   nUniversities                      ; the number of universities initially
-  ;   n-big-universities                 ; number of universities with 10 times initial capital of rest
   ;   big-universities-percent           ; the percentage of firms that will be big firm
   ;   initial-university-capital         ; the capital that a university starts with
   initial-capital-for-big-universities   ; the amount of start-up capital for those universities set to be 'big'
   
   ;   nTTs                      ; the number of TTs initially
-  ;   n-big-TTs                 ; number of TTs with 10 times initial capital of rest
   ;   big-TTs-percent           ; the percentage of firms that will be big firm
   ;   initial-TT-capital        ; the capital that a TT starts with
   initial-capital-for-big-TTs   ; the amount of start-up capital for those TTs set to be 'big'
@@ -53,18 +67,26 @@ globals [
   track-record-value
   absorptive-capacity-value
   
-  ;   baseFriendCircleRadius            ; the base friend circle radius of agent //  Radius(firm) = Radius(University) = 1/2 Raidus(TT)
-  ;   probability-of-accepting-collaboration  ; the probability that the reqeusted collaboration agent will accept
-  ;   probability-of-confirm-collaboration    ; the probability that the reqeusted collaboration agent will confirm
-  ;   probability-of-terminate-collaboration  ; the probability that the collabration will be terminated
+  ;   FirmFriendRadius
+  ;   UniversityFriendRadius
+  ;   IntermediaryFriendRadius
+  ;   probability-of-confirm-collaboration               ; the probability that the reqeusted collaboration agent will confirm
+  ;   probability-of-terminate-collaboration             ; the probability that the collabration will be terminated
   
-  ;   potentialReputaionThreshold              ; string. the threshold that determine whether add the university to collaboration candidate agentset or not
-  ;   potentialResearchMaturityLevelThreshold   ; numeric. the threshold that determine whether add the university to collaboration candidate agentset or not
-  ;   potentialCapitalThreshold                 ; numeric. the threshold that determine whether add the firm to collaboration candidate agentset or not
+  ;   potentialReputaionThreshold                        ; string. the threshold that determine whether add the university to collaboration candidate agentset or not
+  ;   potentialResearchMaturityLevelThreshold            ; numeric. the threshold that determine whether add the university to collaboration candidate agentset or not
+  ;   potentialCapitalThreshold                          ; numeric. the threshold that determine whether add the firm to collaboration candidate agentset or not
   ;   potentialNumberOfProductInPipelineThreshold        ; numeric. the threshold that determine whether add the firm to collaboration candidate agentset or not
   
-  ;   attempToCollaborationThresholdForUniversity      ; numeric, the threshold that determine whether university will reqeust collaboration
+  ;   attempToCollaborateThresholdForUniversity        ; numeric, the threshold that determine whether university will reqeust collaboration 
   
+  ;   technicalDomainMatchingThreshold                 ; numeric, the threshold that determine whether two agent will be matched or not
+  
+  ;   increaseResearchMaturityLevelProbability         ; numeric, the propability that determine whether increase research maturity level of university or not
+  
+  datetimeOfThisProcess                               ; string, the datetime of current running process
+  
+  output-file-path-prefix
 ]
 
 
@@ -84,8 +106,8 @@ firms-own [
   number-of-product-in-pipeline   ;; numeric
   technical-domain            ;; a list
   friend-circle-radius        ;; numeric, to compute the coverage of this agent
-  current-collaborators       ;; a list that record partners are currently collaboraing with
-  previous-collaborators      ;; a list that record partners that had collaborated with
+  current-collaborators       ;; a turtle-set that record partners are currently collaboraing with
+  previous-collaborators      ;; a turtle-set that record partners that had collaborated with
   age
   major-investor              ;; a list
 ]
@@ -119,20 +141,26 @@ TTs-own [
 
 partners-own [ aggregation ]
 
-to test
-  create-turtles 10
-  ;; in random order
-  layout-circle turtles 10
-  ;; in order by who number
-  layout-circle sort turtles 10
-  ;; in order by size
-  layout-circle sort-by [[size] of ?1 < [size] of ?2] turtles 10
-end
 
 
 to setup
   clear-all
   reset-ticks
+  
+  set datetimeOfThisProcess formating-date-time date-and-time
+  set output-file-path-prefix (word "output" datetimeOfThisProcess)
+  pathdir:create(word output-file-path-prefix pathdir:get-separator "matrix")
+  
+  if automatically-assigns-parameters [
+    ifelse not empty? inputFileName [ 
+      assigns_values_of_parameters_from_csv inputFileName
+    ] [ 
+      user-message (word "No specified input file name") 
+      set inputFileName user-input "Please type input file name"
+      assigns_values_of_parameters_from_csv inputFileName
+    ]
+    
+  ]
   
   set track-record-value list "high" "medium"
   set track-record-value lput "low" track-record-value
@@ -143,42 +171,77 @@ to setup
   set initial-capital-for-big-universities 10 * initial-university-capital
   set initial-capital-for-big-TTs 10 * initial-TT-capital
   
+
+  
+  
+  
   initialise-firms 
   initialise-universities
   initialise-TTs
 end
 
-to go2
- ;; if initial-capital-for-big-firms != (10 * initial-firm-capital) [ setup ]
-  
-;;  ask firms [find-partner(universities)]
-;;  ask turtles [ 
-;;    ask patches in-radius 3 [ set pcolor red ] 
- ;;  ask other turtles in-radius 1 [ set pcolor red ] 
-   
-   ;;]
-   
-   CRT 3
-   ASK TURTLES 
-   [ SHOW "LEVEL 1----------"
-     ASK OTHER TURTLES [
-       SHOW (WORD "-----LEVEL 2- SELF:" SELF) 
-       SHOW (WORD "-----LEVEL 2-MYSELF:" MYSELF) 
-       ASK OTHER TURTLES [
-         SHOW (WORD "----------LEVEL 3- SELF:" SELF) 
-         SHOW (WORD "-----------LEVEL 3-MYSELF:" MYSELF)
-         SHOW (WORD "-----------LEVEL 3-MYSELF-OF-MYSELF:" [MYSELF ] OF MYSELF)
 
-       ]]]
+
+;; Assigns the vlaues of parameters (setting by user) from csv file
+to assigns_values_of_parameters_from_csv [file-name]
+  file-open file-name
+  let dict table:make
   
+  while [not file-at-end?] [
+    ;read one line
+    let items split file-read-line ","
+    table:put dict (item 0 items) (try-to-read item 1 items)
+  ]
+  show dict
+  file-close
+  
+  set nFirms table:get dict "nFirms"
+  set big-firms-percent table:get dict "big-firms-percent"
+  set initial-firm-capital table:get dict "initial-firm-capital"
+  set nUniversities table:get dict "nUniversities"
+  set big-universities-percent table:get dict "big-universities-percent"
+  set initial-university-capital table:get dict "initial-university-capital"
+  set nTTs table:get dict "nTTs"
+  set big-TTs-percent table:get dict "big-TTs-percent"
+  set initial-TT-capital table:get dict "initial-TT-capital"
+  set FirmFriendRadius table:get dict "FirmFriendRadius"
+  set UniversityFriendRadius table:get dict "UniversityFriendRadius"
+  set IntermediaryFriendRadius table:get dict "IntermediaryFriendRadius"
+  set probability-of-confirm-collaboration table:get dict "probability-of-confirm-collaboration"
+  set probability-of-terminate-collaboration table:get dict "probability-of-terminate-collaboration"
+  set potentialReputaionThreshold table:get dict "potentialReputaionThreshold"
+  set potentialResearchMaturityLevelThreshold table:get dict "potentialResearchMaturityLevelThreshold"
+  set potentialCapitalThreshold table:get dict "potentialCapitalThreshold"
+  set potentialNumberOfProductInPipelineThreshold table:get dict "potentialNumberOfProductInPipelineThreshold"
+  set attempToCollaborateThresholdForUniversity table:get dict "attempToCollaborateThresholdForUniversity" 
+  set increaseResearchMaturityLevelProbability table:get dict "increaseResearchMaturityLevelProbability"
+  set technicalDomainMatchingThreshold table:get dict "technicalDomainMatchingThreshold"
+  
+  file-open (word output-file-path-prefix pathdir:get-separator file-name)
+  foreach table:keys dict [
+    let key ?
+    file-print (word key "," table:get dict key)
+  ]
+  file-close
+  
+  
+  
+  
+  
+  ;let dict table:make
+  ;table:put dict "turtle" "cute"
+  ;table:put dict "bunny" "cutest"
+  ;print dict
+  
+  ;print table:get dict "turtle"
 end
+
 
 to go
   
   if initial-capital-for-big-firms != (10 * initial-firm-capital) [ setup ]
   ;;clear-all
   clear-links
-  
   
   ask firms [
     
@@ -209,7 +272,7 @@ to go
     
     terminate_collaboration
     
-    set friend-circle-radius baseFriendCircleRadius ;; set friend-circle-radius again for real time adjusting
+    set friend-circle-radius FirmFriendRadius ;; set friend-circle-radius again for real time adjusting
   ]
   
   ask universities [
@@ -237,8 +300,8 @@ to go
       
     ] [
     
-      if research-maturity-level >= attempToCollaborationThresholdForUniversity [
-         show(word self ": request collaboration")
+      if research-maturity-level >= attempToCollaborateThresholdForUniversity [
+;;         show(word self ": request collaboration")
          request_for_development_collaboration(firms)
          request_for_research_collaboration(other universities)
        ]
@@ -249,7 +312,7 @@ to go
     if increase-research-maturity-level? [ set research-maturity-level research-maturity-level + 1 ]
     
     
-    set friend-circle-radius baseFriendCircleRadius ;; set friend-circle-radius again for real time adjusting
+    set friend-circle-radius UniversityFriendRadius ;; set friend-circle-radius again for real time adjusting
   ]
   
   ask TTs [
@@ -263,7 +326,7 @@ to go
     
       let potential-universities screening_for_technology_with_potential  ;; find the universities that have potential research
       let potential-firms screening_for_potential_actors                  ;; find the firms that have potential technology to implement research
-;;      show word "potential-universities: " potential-universities
+;;    show word "potential-universities: " potential-universities
 ;;      show word "potential-firms: " potential-firms
       ifelse (random 2) > 0 [
         matching potential-firms potential-universities                     ;; start matching procedure
@@ -274,7 +337,7 @@ to go
       
     ]
     
-    set friend-circle-radius (baseFriendCircleRadius * 2) ;; set friend-circle-radius again for real time adjusting
+    set friend-circle-radius IntermediaryFriendRadius ;; set friend-circle-radius again for real time adjusting
     
   ]
   
@@ -282,12 +345,15 @@ to go
   
 ;;  show map sort nw:get-context
   
-  let filename (word "output/matrix/matrix-" ticks ".txt")
-  nw:save-matrix filename
+  let filename (word output-file-path-prefix pathdir:get-separator "matrix" pathdir:get-separator "matrix-" ticks ".csv")
   
-  set filename "output/angent_and_attri.txt"
+;;  nw:save-matrix filename
+  save-matrix filename
   
-  record-attribute
+  
+  set filename (word output-file-path-prefix pathdir:get-separator "angent_and_attri.txt")
+  
+  record-attribute filename
   
   redraw
   
@@ -433,9 +499,10 @@ to initialise-firms
     set technical-domain list (random 10) (random 10) 
     set shape "circle"
     setxy random-pxcor random-pycor
-    set friend-circle-radius baseFriendCircleRadius
+    set friend-circle-radius FirmFriendRadius
     set current-collaborators (turtle-set)
     set previous-collaborators (turtle-set)
+    set major-investor (turtle-set)
   ]
   
   ;  make some of them large firms, with extra initial capital
@@ -456,7 +523,7 @@ to initialise-universities
     set technical-domain list (random 10) (random 10)
     set shape "triangle"
     setxy random-pxcor random-pycor
-    set friend-circle-radius baseFriendCircleRadius
+    set friend-circle-radius UniversityFriendRadius
     set current-collaborators (turtle-set)
     set previous-collaborators (turtle-set)
     set reputation one-of (list "high" "medium" "low")
@@ -481,7 +548,7 @@ to initialise-TTs
     set technical-domain list (random 10) (random 10)
     set shape "target"
     setxy random-pxcor random-pycor
-    set friend-circle-radius 2 * baseFriendCircleRadius
+    set friend-circle-radius IntermediaryFriendRadius
   ]
   
       ;  make some of them large firms, with extra initial capital
@@ -547,26 +614,32 @@ end
 
 
 
-;; firm and university procedure (only to university)
-to request_for_research_collaboration [candidate-universities]
+;; firm and university procedure (target: university )
+;; parameter: unversities (turtle-set)
+;; F/U -> U color of link: yellow = 45
+to request_for_research_collaboration [candicate-universities]
   let myself-current-collaborators current-collaborators
-  ask candidate-universities in-radius friend-circle-radius [
-    if not member? self myself-current-collaborators [
-      if (desire-to-collaborate?) [ 
-        if (confirm-to-collaborate?) [
-          set myself-current-collaborators (turtle-set myself-current-collaborators self)  ;; save university to current partner to list
-          set current-collaborators (turtle-set current-collaborators myself)   ;; save firm to current partner list          
-        ]
+  
+  let selected-candicate best_fit_university candicate-universities
+  
+  if selected-candicate != nobody [
+    ;; User define probability
+    if confirm-to-collaborate? [
+      ask selected-candicate [
+        set myself-current-collaborators (turtle-set myself-current-collaborators self)  ;; save university to current partner to list
+        set current-collaborators (turtle-set current-collaborators myself)   ;; save firm to current partner list          
       ]
     ]
   ]
+  
   
   set current-collaborators myself-current-collaborators ;; save agentset back
   
   
   ask current-collaborators [
     let partner self
-    let link-color (list (random 256) (random 256) (random 256))
+    ;let link-color (list (random 256) (random 256) (random 256))
+    let link-color 45
     ask myself [ create-partner-to partner [ set color link-color ] ] ;; create link
   ]
   
@@ -574,25 +647,31 @@ end
 
 
 
-;; firm and university procedure (only to firm)
-to request_for_development_collaboration [candidate-frims]
+;; firm/university procedure (target: firm)
+;; parameter: firms (turtle-set)
+;; F/U -> F color of link: lime = 65
+to request_for_development_collaboration [candicate-firms]
   let myself-current-collaborators current-collaborators
-  ask candidate-frims in-radius friend-circle-radius [
-    if not member? self myself-current-collaborators [
-      if (desire-to-collaborate?) [ 
-        if (confirm-to-collaborate?) [
-          set myself-current-collaborators (turtle-set myself-current-collaborators self)  ;; save university to current partner to list
-          set current-collaborators (turtle-set current-collaborators myself)   ;; save firm to current partner list          
-        ]
+  
+  let selected-candicate best_fit_firm candicate-firms
+  
+  if selected-candicate != nobody [
+    ;; User define probability
+    if confirm-to-collaborate? [
+      ask selected-candicate [
+        set myself-current-collaborators (turtle-set myself-current-collaborators self)  ;; save university to current partner to list
+        set current-collaborators (turtle-set current-collaborators myself)   ;; save firm to current partner list          
       ]
     ]
   ]
+  
   
   set current-collaborators myself-current-collaborators ;; save agentset back
   
   ask current-collaborators [
     let partner self
-    let link-color (list (random 256) (random 256) (random 256))
+;;    let link-color (list (random 256) (random 256) (random 256))
+    let link-color 65
     ask myself [ create-partner-to partner [ set color link-color ] ]
   ]
   
@@ -641,6 +720,8 @@ to terminate_collaboration
   
 end
 
+
+
 ;; intermediary reporter, to find the universities who have the potential to research technology. return an agentset
 to-report screening_for_technology_with_potential
   let potential-candidates (turtle-set)
@@ -672,6 +753,7 @@ to-report screening_for_potential_actors
 end
 
 ;; intermediary procedure, to match firm and university
+;; link-color: cyan = 85
 to matching [potential-sources potential-targets]
   let current-intermediary self
   
@@ -683,14 +765,16 @@ to matching [potential-sources potential-targets]
       let current-target self 
       let target-current-collaborators current-collaborators
       
+      
       if not member? current-source current-collaborators [  ;; if they are not collaborating cuurently
         let score compare-technical-domain ([technical-domain] of current-source) ([technical-domain] of current-target)
-        if score >= (matchingThreshold / 100) [  ;; collaborate
+        if score >= (technicalDomainMatchingThreshold / 100) [  ;; collaborate
           set source-current-collaborators (turtle-set source-current-collaborators current-target)  ;; save the collaborator to current-collaborators list
           set target-current-collaborators (turtle-set target-current-collaborators current-source)  ;; save the collaborator to current-collaborators list
           
           ;; create link connect firm and university through intermediary
-          let link-color (list (random 256) (random 256) (random 256)) ;; set color of link
+;;          let link-color (list (random 256) (random 256) (random 256)) ;; set color of link
+          let link-color 85
           
           show(word "matching source: " current-source ", dest: " current-target )
           
@@ -713,8 +797,9 @@ end
 
 
 ;; Observer procedure
-to record-attribute
-  file-open "output/angent_count_and_attribute.txt"
+to record-attribute [filename]
+;  file-open "output/angent_count_and_attribute.txt"
+  file-open filename
   file-print(word "================tick: " ticks " ================")
   file-print(word "total agent: " count turtles)
   file-print(word "count firm: " count firms)
@@ -724,83 +809,89 @@ to record-attribute
   nw:set-context turtles partners
   
   file-print(word "############## Firm Attribute ############")
-  let number 1
-  ask firms [
-    let prefix (word "[firm" number "] ")
-    file-print(word prefix "capital: " capital)
-    file-print(word prefix "track-record: " track-record)
-    file-print(word prefix "staff-number: " staff-number)
-    file-print(word prefix "absorptive-capacity: " absorptive-capacity)
-    file-print(word prefix "number-of-patent: " number-of-patent)
-    file-print(word prefix "number-of-product-in-pipeline: " number-of-product-in-pipeline) 
-    file-print(word prefix "technical-domain: " technical-domain)
-    
-    ;; record the betweenness
-    let res (runresult task nw:betweenness-centrality)
-    if is-number? res [ set res precision res 2 ]
-    file-print(word prefix "betweenness-centrality: " res)
-    
-    ;; record the eigenvector
-    set res (runresult task nw:eigenvector-centrality)
-    if is-number? res [ set res precision res 2 ]
-    file-print(word prefix "eigenvector-centrality: " res)
-    
-    
-    ;; record the closeness
-    set res (runresult task nw:closeness-centrality)
-    if is-number? res [ set res precision res 2 ]
-    file-print(word prefix "closeness-centrality: " res)
-    
-    ;; record the page-rank
-    set res (runresult task nw:page-rank)
-    if is-number? res [ set res precision res 2 ]
-    file-print(word prefix "page-rank: " res)
-    
-    file-print ""
-    set number number + 1     
+  
+  foreach sort firms [
+    ask ? [
+        let prefix (word self)
+        file-print(word prefix "capital: " capital)
+        file-print(word prefix "track-record: " track-record)
+        file-print(word prefix "staff-number: " staff-number)
+        file-print(word prefix "absorptive-capacity: " absorptive-capacity)
+        file-print(word prefix "number-of-patent: " number-of-patent)
+        file-print(word prefix "number-of-product-in-pipeline: " number-of-product-in-pipeline) 
+        file-print(word prefix "technical-domain: " technical-domain)
+        
+        ;; record the betweenness
+        let res (runresult task nw:betweenness-centrality)
+        if is-number? res [ set res precision res 2 ]
+        file-print(word prefix "betweenness-centrality: " res)
+        
+        ;; record the eigenvector
+        set res (runresult task nw:eigenvector-centrality)
+        if is-number? res [ set res precision res 2 ]
+        file-print(word prefix "eigenvector-centrality: " res)
+        
+        
+        ;; record the closeness
+        set res (runresult task nw:closeness-centrality)
+        if is-number? res [ set res precision res 2 ]
+        file-print(word prefix "closeness-centrality: " res)
+        
+        ;; record the page-rank
+        set res (runresult task nw:page-rank)
+        if is-number? res [ set res precision res 2 ]
+        file-print(word prefix "page-rank: " res)
+        
+        file-print ""
+    ]
   ]
+
 
   
   file-print(word "############## University Attribute ##############")  
-  set number 1
-  ask universities [
-    let prefix (word "[university" number "] ")
-    file-print(word prefix "capital: " capital)
-    file-print(word prefix "track-record: " track-record)
-    file-print(word prefix "staff-number: " staff-number)
-    file-print(word prefix "number-of-patent: " number-of-patent)
-    file-print(word prefix "technical-domain: " technical-domain)
-    
-    ;; record the betweenness
-    let res (runresult task nw:betweenness-centrality)
-    if is-number? res [ set res precision res 2 ]
-    file-print(word prefix "betweenness-centrality: " res)
-    
-    ;; record the eigenvector
-    set res (runresult task nw:eigenvector-centrality)
-    if is-number? res [ set res precision res 2 ]
-    file-print(word prefix "eigenvector-centrality: " res)
-    
-    ;; record the closeness
-    set res (runresult task nw:closeness-centrality)
-    if is-number? res [ set res precision res 2 ]
-    file-print(word prefix "closeness-centrality: " res)
-    
-    
-    ;; record the page-rank
-    set res (runresult task nw:page-rank)
-    if is-number? res [ set res precision res 2 ]
-    file-print(word prefix "page-rank: " res)
-    
-    
-    file-print ""
-    set number number + 1     
+  
+  foreach sort universities [
+      ask ? [
+        let prefix (word self)
+        file-print(word prefix "capital: " capital)
+        file-print(word prefix "track-record: " track-record)
+        file-print(word prefix "staff-number: " staff-number)
+        file-print(word prefix "number-of-patent: " number-of-patent)
+        file-print(word prefix "technical-domain: " technical-domain)
+        
+        ;; record the betweenness
+        let res (runresult task nw:betweenness-centrality)
+        if is-number? res [ set res precision res 2 ]
+        file-print(word prefix "betweenness-centrality: " res)
+        
+        ;; record the eigenvector
+        set res (runresult task nw:eigenvector-centrality)
+        if is-number? res [ set res precision res 2 ]
+        file-print(word prefix "eigenvector-centrality: " res)
+        
+        ;; record the closeness
+        set res (runresult task nw:closeness-centrality)
+        if is-number? res [ set res precision res 2 ]
+        file-print(word prefix "closeness-centrality: " res)
+        
+        
+        ;; record the page-rank
+        set res (runresult task nw:page-rank)
+        if is-number? res [ set res precision res 2 ]
+        file-print(word prefix "page-rank: " res)
+        
+        
+        file-print ""
+      ]
   ]
   
+
+  
   file-print(word "##############TT Attribute ##############")
-  set number 1
-  ask TTs [
-    let prefix (word "[TT" number "] ")
+  
+foreach sort TTs [
+  ask ? [
+    let prefix (word self)
     file-print(word prefix "capital: " capital)
     file-print(word prefix "track-record: " track-record)
     file-print(word prefix "staff-number: " staff-number)
@@ -829,18 +920,45 @@ to record-attribute
     file-print(word prefix "page-rank: " res)
     
     file-print ""
-    set number number + 1     
   ]
+]
+
   
   file-close
 end
 
 
-;; report whether objective partner want to collaborate with him or not
-to-report desire-to-collaborate?
-  let x random 100
-  ifelse x < (probability-of-accepting-collaboration) [report true] [report false]
+
+to save-matrix [ filename ]
+  if file-exists? filename [ file-delete filename ]
+  file-open filename
+  let turtle-list sort turtles
+  
+  file-type " ,"
+  foreach turtle-list [ 
+    file-write ?
+    file-type ","
+  ]
+  file-print ""
+  
+  foreach turtle-list [
+    let source ?
+    file-type word source ","
+    
+    foreach turtle-list [
+       let target ?
+       ifelse [ link-neighbor? target ] of source [
+         file-type "1,"
+       ] [
+         file-type "0,"
+       ]
+    ]
+    file-print ""
+  ]
+  file-close
 end
+
+
 
 ;; report whether two agent will collaborate successfully or not
 to-report confirm-to-collaborate?
@@ -869,7 +987,7 @@ to-report compare-technical-domain [list1 list2]
   ;;report score / denominator
   
   ;; match的技術數量/雙方的技術數量和
-  report score / (list1 + list2)
+  report score / (length list1 + length list2)
 end
 
 ;; report true if university is ready for increasing research-maturity-level
@@ -878,6 +996,188 @@ to-report increase-research-maturity-level?
   ifelse x < increaseResearchMaturityLevelProbability [report true] [report false]
 end
   
+  
+;; Report the best fit university to research collaboration with
+;; Asker: firm, university
+to-report best_fit_university [us]
+  let myself-current-collaborators current-collaborators
+  let candicates (turtle-set)
+  let score 0
+  let current-max -1
+  ask us in-radius friend-circle-radius [
+    if not member? self myself-current-collaborators [
+      set score reputation_to_value reputation + research-maturity-level
+      if score > current-max [
+        set candicates (turtle-set self)
+        set current-max score
+      ]
+    ]
+  ]
+  
+  ;; report one candicate in candicates (randomly)
+  report one-of candicates
+end
+
+;; Report the best fit firm to research collaboration
+;; Asker: firm, university
+to-report best_fit_firm [fs]
+  let myself-current-collaborators current-collaborators
+  let candicates (turtle-set)
+  let myself-major-investor (turtle-set)
+  
+  if [breed] of self = firms [set myself-major-investor major-investor]
+  let asker self
+  let current-max -1
+  
+  ask fs in-radius friend-circle-radius [
+    let score 0
+    if not member? self myself-current-collaborators [
+      ifelse [breed] of asker = firms [
+      ;; firm ask collaboration
+      ;; previous partner? + Have same major investor? + capital + Number of products in pipeline
+        if contain myself-major-investor major-investor [ set score (score + 1)]
+        set score (score + capital + number-of-product-in-pipeline)
+        if score > current-max [
+          set candicates (turtle-set self)
+          set current-max score
+        ]
+      
+      ] [
+        ;; university ask collaboration
+        ;; previous partner? + capital + Number of products in pipeline + Absorptive capacity
+        set score (score + capital + number-of-product-in-pipeline + absorptive_capacity_to_value absorptive-capacity)
+        if score > current-max [
+          set candicates (turtle-set self)
+          set current-max score
+        ]
+      ] 
+    ]
+  ]
+  
+  show "maydaycha!!!"
+  show candicates
+  show one-of candicates
+  
+  report one-of candicates
+end
+
+
+
+
+
+;; utilities
+to-report contain[source target]
+  ask source [
+    if member? self target [report true]
+  ]
+  report false
+end
+
+to-report absorptive_capacity_to_value [absorptive]
+  if absorptive = "high" [report 10]
+  
+  if absorptive = "medium" [report 5]
+  
+  if absorptive = "low" [report 0]
+end
+
+to-report reputation_to_value [rep]
+  if rep = "high" [report 10]
+  
+  if rep = "medium" [report 5]
+  
+  if rep = "low" [report 0]
+end
+
+
+
+to-report try-to-read [ string ]
+  let result string
+  carefully [ set result read-from-string string ] []
+  report result
+end
+
+to-report split [ string delim ]
+  report reduce [
+    ifelse-value (?2 = delim)
+      [ lput "" ?1 ]
+      [ lput word last ?1 ?2 but-last ?1 ]
+  ] fput [""] n-values (length string) [ substring string ? (? + 1) ]
+end
+
+
+to-report formating-date-time [datetime]
+  let result split datetime " "
+  let date item 2 result
+  let ampm item 1 result
+  let time item 0 result
+  set time split time "."
+  set time item 0 time
+  set time replace-item 2 time "-"
+  set time replace-item 5 time "-"
+  set result(word date "-" ampm time)
+  report result
+end
+
+
+
+
+
+; ======================================== Testing function ============================================
+
+
+to read-content
+
+  let line1 "MyAge\t20\tMyYear\t1994" ; in real life, you'll use file-read-line
+  let items split line1 "\t"
+  show items ; will be: ["MyAge" "20" "MyYear" "1994"]
+
+  ; If you know the types, you can read the items one by one.
+  ; Only apply `read-from-string` to numbers:
+  let itemsAB1 (list
+    item 0 items
+    read-from-string item 1 items
+    item 2 items
+    read-from-string item 3 items
+  )
+;  show itemsAB1 ; ["MyAge" 20 "MyYear" 1994]
+
+  ; You could also "carefully" try to convert everything to numbers:
+  let itemsAB2 map try-to-read items
+;  show itemsAB2 ; ["MyAge" 20 "MyYear" 1994]
+
+end
+
+
+to test
+  create-turtles 10
+  ;; in random order
+  layout-circle turtles 10
+  ;; in order by who number
+  layout-circle sort turtles 10
+  ;; in order by size
+  layout-circle sort-by [[size] of ?1 < [size] of ?2] turtles 10
+end
+
+
+to go2
+   CRT 3
+   ASK TURTLES 
+   [ SHOW "LEVEL 1----------"
+     ASK OTHER TURTLES [
+       SHOW (WORD "-----LEVEL 2- SELF:" SELF) 
+       SHOW (WORD "-----LEVEL 2-MYSELF:" MYSELF) 
+       ASK OTHER TURTLES [
+         SHOW (WORD "----------LEVEL 3- SELF:" SELF) 
+         SHOW (WORD "-----------LEVEL 3-MYSELF:" MYSELF)
+         SHOW (WORD "-----------LEVEL 3-MYSELF-OF-MYSELF:" [MYSELF ] OF MYSELF)
+
+       ]]]
+  
+end
+
+
+; ======================================== Testing function ============================================
 @#$#@#$#@
 GRAPHICS-WINDOW
 568
@@ -926,28 +1226,13 @@ NIL
 SLIDER
 4
 109
-143
+173
 142
 initial-firm-capital
 initial-firm-capital
 0
 100
-53
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-5
-56
-97
-89
-nFirms
-nFirms
-0
-100
-13
+30
 1
 1
 NIL
@@ -990,28 +1275,28 @@ NIL
 SLIDER
 187
 56
-308
+349
 89
 nUniversities
 nUniversities
 0
 100
-9
+30
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-158
-109
-332
-142
+182
+112
+356
+145
 initial-university-capital
 initial-university-capital
 0
 100
-53
+30
 1
 1
 NIL
@@ -1054,13 +1339,13 @@ NIL
 SLIDER
 365
 55
-457
+521
 88
 nTTs
 nTTs
 0
 100
-17
+30
 1
 1
 NIL
@@ -1075,37 +1360,37 @@ initial-tt-capital
 initial-tt-capital
 0
 100
-50
+30
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-4
+5
+170
 171
-145
-204
+203
 big-firms-percent
 big-firms-percent
 0
 100
-11
+30
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-163
+180
 171
-331
+348
 204
 big-universities-percent
 big-universities-percent
 0
 100
-12
+30
 1
 1
 NIL
@@ -1120,7 +1405,7 @@ big-TTs-percent
 big-TTs-percent
 0
 100
-31
+30
 1
 1
 NIL
@@ -1193,165 +1478,101 @@ NIL
 NIL
 1
 
-BUTTON
-1281
-61
-1344
-94
-NIL
-test
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
 SLIDER
-77
-267
-392
-300
-baseFriendCircleRadius
-baseFriendCircleRadius
-0
-sqrt (max-pxcor * max-pxcor + max-pycor * max-pycor)
-8
-1
-1
-NIL
-HORIZONTAL
-
-BUTTON
-1359
-59
-1422
-92
-NIL
-go2
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-SLIDER
-89
-330
-396
-363
-probability-of-accepting-collaboration
-probability-of-accepting-collaboration
+922
+676
+1217
+709
+probability-of-confirm-collaboration
+probability-of-confirm-collaboration
 0
 100
-4
+30
 1
 1
 %
 HORIZONTAL
 
 SLIDER
-88
-381
-383
-414
-probability-of-confirm-collaboration
-probability-of-confirm-collaboration
-0
-100
-4
-1
-1
-%
-HORIZONTAL
-
-SLIDER
-87
-444
-392
-477
+918
+742
+1223
+775
 probability-of-terminate-collaboration
 probability-of-terminate-collaboration
 0
 100
-2
+30
 1
 1
 %
 HORIZONTAL
 
 CHOOSER
-91
-502
-303
-547
+86
+587
+298
+632
 potentialReputaionThreshold
 potentialReputaionThreshold
 "high" "medium" "low"
-2
+0
 
 SLIDER
-92
-568
-401
-601
+84
+652
+393
+685
 potentialResearchMaturityLevelThreshold
 potentialResearchMaturityLevelThreshold
 0
 100
-50
+30
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-93
-628
-306
-661
+85
+712
+298
+745
 potentialCapitalThreshold
 potentialCapitalThreshold
 0
 100
-50
+30
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-92
-692
-434
-725
+84
+776
+426
+809
 potentialNumberOfProductInPipelineThreshold
 potentialNumberOfProductInPipelineThreshold
 0
 100
-50
+30
 1
 1
 NIL
 HORIZONTAL
 
 SLIDER
-89
-753
-275
-786
-matchingThreshold
-matchingThreshold
+81
+837
+371
+870
+technicalDomainMatchingThreshold
+technicalDomainMatchingThreshold
 0
 100
-0
+30
 1
 1
 %
@@ -1375,34 +1596,226 @@ NIL
 1
 
 SLIDER
-87
-816
-407
-849
+923
+613
+1243
+646
 increaseResearchMaturityLevelProbability
 increaseResearchMaturityLevelProbability
 0
 100
-50
+30
 1
 1
 %
 HORIZONTAL
 
 SLIDER
-460
-818
-802
-851
-attempToCollaborationThresholdForUniversity
-attempToCollaborationThresholdForUniversity
+78
+953
+420
+986
+attempToCollaborateThresholdForUniversity
+attempToCollaborateThresholdForUniversity
 0
 100
-12
+30
 1
 1
 NIL
 HORIZONTAL
+
+SLIDER
+4
+55
+176
+88
+nFirms
+nFirms
+0
+100
+30
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+5
+223
+169
+256
+FirmFriendRadius
+FirmFriendRadius
+0
+sqrt (max-pxcor * max-pxcor + max-pycor * max-pycor)
+30
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+181
+223
+350
+256
+UniversityFriendRadius
+UniversityFriendRadius
+0
+sqrt (max-pxcor * max-pxcor + max-pycor * max-pycor)
+30
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+360
+223
+543
+256
+IntermediaryFriendRadius
+IntermediaryFriendRadius
+0
+sqrt (max-pxcor * max-pxcor + max-pycor * max-pycor)
+30
+1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+87
+534
+237
+554
+Threshold
+16
+0.0
+1
+
+TEXTBOX
+318
+593
+664
+638
+A threshold that determine whether the reputation of university is enough to be a potential collbaorator to be  matched by Intermediary
+12
+0.0
+1
+
+TEXTBOX
+412
+649
+806
+696
+A threshold that determine whether the Research Maturity Level of university is enough to be a potential collbaorator to be matched by Intermediary
+12
+0.0
+1
+
+TEXTBOX
+310
+712
+724
+742
+A threshold that determine whether the capital of firm is enough to be a potential collbaorator to be matched by Intermediary
+12
+0.0
+1
+
+TEXTBOX
+442
+778
+899
+810
+A threshold that determine whether the amount of product in pipeline of firm is enough to be a potential collbaorator to be matched by Intermediary\n
+12
+0.0
+1
+
+TEXTBOX
+387
+834
+839
+878
+A threshold that determine whether the percent of matching techical domain between two university and firm  is enough to collaborate with and matched by Intermediary\n
+12
+0.0
+1
+
+TEXTBOX
+439
+956
+864
+1000
+A threshold that determines whether the research maturity level of university is enough to request collaborate with others.\n
+12
+0.0
+1
+
+TEXTBOX
+930
+570
+1080
+590
+Probability
+16
+0.0
+1
+
+TEXTBOX
+1258
+614
+1627
+648
+A probability that determines whether university will increase his research maturity level or not
+12
+0.0
+1
+
+TEXTBOX
+1246
+678
+1587
+710
+A probability that determines whether two agent will successfully collaborate with each other
+12
+0.0
+1
+
+TEXTBOX
+1245
+741
+1569
+775
+A probability that determines whether two collaborators will terminate their collaboration or not
+12
+0.0
+1
+
+SWITCH
+1247
+365
+1517
+398
+automatically-assigns-parameters
+automatically-assigns-parameters
+0
+1
+-1000
+
+INPUTBOX
+1247
+413
+1482
+473
+inputFileName
+input.csv
+1
+0
+String
 
 @#$#@#$#@
 ## WHAT IS IT?
