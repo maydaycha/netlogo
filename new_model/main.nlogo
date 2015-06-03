@@ -39,6 +39,9 @@
 ;; 2015/05/05
 ;; 1. Assign value to parameters automaitcally
 
+;; 2015/06/03
+;; 1. Export view and interface in every tick
+;; 2. Add monitor (plot)
 
 
 
@@ -148,7 +151,7 @@ to setup
   reset-ticks
   
   set datetimeOfThisProcess formating-date-time date-and-time
-  set output-file-path-prefix (word "output" datetimeOfThisProcess)
+  set output-file-path-prefix (word "output-" datetimeOfThisProcess)
   pathdir:create(word output-file-path-prefix pathdir:get-separator "matrix")
   
   if automatically-assigns-parameters [
@@ -358,6 +361,10 @@ to go
   redraw
   
   ask turtle 1 [ repeat 1 [ fd 1 wait 1  ] ]
+  
+  ;; export view & interface
+  export-view (word output-file-path-prefix pathdir:get-separator "view")
+  export-interface (word output-file-path-prefix pathdir:get-separator "interface")
  
   tick
 end
@@ -1816,6 +1823,24 @@ input.csv
 1
 0
 String
+
+PLOT
+262
+310
+462
+460
+Plot
+Ticks
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Link" 1.0 0 -13840069 true "" "plot count links"
 
 @#$#@#$#@
 ## WHAT IS IT?
