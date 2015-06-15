@@ -1,3 +1,4 @@
 output/*
 *.txt
 new_model.zip
+new_model/output*/*

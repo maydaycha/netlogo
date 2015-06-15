@@ -44,6 +44,11 @@
 ;; 2. Add monitor (plot)
 
 
+;; 2015/06/15
+;; 1. delete agent function
+;; 2. add agent function (initialise-firms; initialise-universities; initialise-TTs)
+
+
 
 extensions [nw table pathdir]
 
@@ -178,9 +183,9 @@ to setup
   
   
   
-  initialise-firms 
-  initialise-universities
-  initialise-TTs
+  initialise-firms nFirms
+  initialise-universities nUniversities
+  initialise-TTs nTTs
 end
 
 
@@ -495,8 +500,8 @@ end
 
 
 ;; observer procedure
-to initialise-firms
-  create-firms nFirms [
+to initialise-firms [number]
+  create-firms number [
     set capital initial-firm-capital
     set track-record one-of track-record-value
     set staff-number (random 100)                       
@@ -521,8 +526,8 @@ to initialise-firms
 end
 
 ;; observer procedure
-to initialise-universities 
-  create-universities nUniversities [
+to initialise-universities [number]
+  create-universities number [
     set capital initial-university-capital
     set track-record one-of track-record-value
     set staff-number (random 100)                       
@@ -545,8 +550,8 @@ to initialise-universities
 end
 
 ;; observer procedure
-to initialise-TTs
-  create-TTs nTTs [
+to initialise-TTs [number]
+  create-TTs number [
     set capital initial-tt-capital
     set track-record one-of track-record-value
     set staff-number (random 100)                       
@@ -726,6 +731,13 @@ to terminate_collaboration
   set current-collaborators myself-current-collaborators
   
 end
+
+
+;; delete particular agent
+to delete-agent [agent]
+  ask agent [die]
+end
+
 
 
 
@@ -1061,7 +1073,6 @@ to-report best_fit_firm [fs]
     ]
   ]
   
-  show "maydaycha!!!"
   show candicates
   show one-of candicates
   
