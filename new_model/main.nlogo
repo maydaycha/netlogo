@@ -45,8 +45,11 @@
 
 
 ;; 2015/06/15
-;; 1. delete agent function
-;; 2. add agent function (initialise-firms; initialise-universities; initialise-TTs)
+;; 1. Delete agent function
+;; 2. Add agent function (initialise-firms; initialise-universities; initialise-TTs)
+
+;; 2015/06/29
+;; 1. Add interface for deleteing and adding agent
 
 
 
@@ -154,7 +157,7 @@ partners-own [ aggregation ]
 to setup
   clear-all
   reset-ticks
-  
+
   set datetimeOfThisProcess formating-date-time date-and-time
   set output-file-path-prefix (word "output-" datetimeOfThisProcess)
   pathdir:create(word output-file-path-prefix pathdir:get-separator "matrix")
@@ -186,6 +189,8 @@ to setup
   initialise-firms nFirms
   initialise-universities nUniversities
   initialise-TTs nTTs
+  
+ ;; ask turtles [set label who set size 1.5]
 end
 
 
@@ -515,6 +520,8 @@ to initialise-firms [number]
     set current-collaborators (turtle-set)
     set previous-collaborators (turtle-set)
     set major-investor (turtle-set)
+    set label who
+    set size 1.5
   ]
   
   ;  make some of them large firms, with extra initial capital
@@ -540,6 +547,8 @@ to initialise-universities [number]
     set previous-collaborators (turtle-set)
     set reputation one-of (list "high" "medium" "low")
     set research-maturity-level (random 10)   
+    set label who
+    set size 1.5
   ]
   
     ;  make some of them large firms, with extra initial capital
@@ -561,6 +570,8 @@ to initialise-TTs [number]
     set shape "target"
     setxy random-pxcor random-pycor
     set friend-circle-radius IntermediaryFriendRadius
+    set label who
+    set size 1.5
   ]
   
       ;  make some of them large firms, with extra initial capital
@@ -736,6 +747,25 @@ end
 ;; delete particular agent
 to delete-agent [agent]
   ask agent [die]
+end
+
+to delete_agent
+  carefully [ delete-agent turtle number-of-agent-to-be-deleted ] [ user-message (word "This agent dose not exist!") ]
+end
+
+to add-firm
+  initialise-firms number-of-firm-to-be-added
+  set nFirms nFirms + number-of-firm-to-be-added
+end
+
+to add-university
+  initialise-universities number-of-university-to-be-added
+  set nUniversities nUniversities + number-of-university-to-be-added
+end
+
+to add-tt
+  initialise-TTs number-of-tt-to-be-added
+  set nTTs nTTs + number-of-tt-to-be-added
 end
 
 
@@ -1198,15 +1228,15 @@ end
 ; ======================================== Testing function ============================================
 @#$#@#$#@
 GRAPHICS-WINDOW
-568
-33
-1007
-493
+563
+34
+1003
+495
 16
 16
-13.0
+13.030303030303031
 1
-10
+9
 1
 1
 1
@@ -1299,7 +1329,7 @@ nUniversities
 nUniversities
 0
 100
-30
+0
 1
 1
 NIL
@@ -1363,7 +1393,7 @@ nTTs
 nTTs
 0
 100
-30
+0
 1
 1
 NIL
@@ -1447,7 +1477,7 @@ SWITCH
 449
 display-universities
 display-universities
-0
+1
 1
 -1000
 
@@ -1622,7 +1652,7 @@ increaseResearchMaturityLevelProbability
 increaseResearchMaturityLevelProbability
 0
 100
-30
+48
 1
 1
 %
@@ -1652,7 +1682,7 @@ nFirms
 nFirms
 0
 100
-30
+13
 1
 1
 NIL
@@ -1820,7 +1850,7 @@ SWITCH
 398
 automatically-assigns-parameters
 automatically-assigns-parameters
-0
+1
 1
 -1000
 
@@ -1852,6 +1882,118 @@ true
 "" ""
 PENS
 "Link" 1.0 0 -13840069 true "" "plot count links"
+
+INPUTBOX
+1251
+47
+1432
+107
+number-of-agent-to-be-deleted
+7
+1
+0
+Number
+
+BUTTON
+1432
+62
+1542
+95
+NIL
+delete_agent\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+INPUTBOX
+1252
+124
+1432
+184
+number-of-firm-to-be-added
+2
+1
+0
+Number
+
+INPUTBOX
+1254
+199
+1445
+259
+number-of-university-to-be-added
+0
+1
+0
+Number
+
+INPUTBOX
+1253
+271
+1408
+331
+number-of-tt-to-be-added
+0
+1
+0
+Number
+
+BUTTON
+1432
+139
+1519
+172
+NIL
+add-firm\n
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+1445
+215
+1568
+248
+NIL
+add-university
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+1407
+288
+1478
+321
+NIL
+add-tt
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
