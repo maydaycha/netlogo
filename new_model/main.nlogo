@@ -183,12 +183,20 @@ to setup
   set initial-capital-for-big-TTs 10 * initial-TT-capital
   
 
+  ifelse import-empirical-data [
+    assign_capital_of_firm_from_empirical_data "capital.csv"
+    assign_staff_of_firm_from_empirical_data "staff.csv"
+    
+    initialise-universities nUniversities
+    initialise-TTs nTTs
+    
+  ] [
+    initialise-firms nFirms
+    initialise-universities nUniversities
+    initialise-TTs nTTs
   
+  ]
   
-  
-  initialise-firms nFirms
-  initialise-universities nUniversities
-  initialise-TTs nTTs
   
  ;; ask turtles [set label who set size 1.5]
 end
@@ -236,17 +244,79 @@ to assigns_values_of_parameters_from_csv [file-name]
     file-print (word key "," table:get dict key)
   ]
   file-close
-  
-  
-  
-  
-  
+ 
   ;let dict table:make
   ;table:put dict "turtle" "cute"
   ;table:put dict "bunny" "cutest"
   ;print dict
   
   ;print table:get dict "turtle"
+end
+
+
+to assign_capital_of_firm_from_empirical_data [file-name]
+  file-open file-name
+  let firm-count 0
+  let capital-list (list -1)
+  
+  while [not file-at-end?] [
+    set firm-count firm-count + 1
+    let items split file-read-line ","
+    set capital-list lput try-to-read item 1 items capital-list
+  ]
+  set capital-list remove-item 0 capital-list
+  set capital-list remove-item 0 capital-list
+  set firm-count firm-count - 1
+  set nFirms firm-count
+  
+  ;; create firms
+  if count firms = 0 [
+    initialise-firms nFirms
+  ]
+  ; initialise-universities nUniversities
+  ; initialise-TTs nTTs
+  
+  ;; set capital of each firms
+  
+  let counting 0
+    
+  foreach sort firms [
+    ask ? [ set capital item counting capital-list ]
+    set counting counting + 1
+  ]
+  
+  file-close
+end
+
+to assign_staff_of_firm_from_empirical_data [file-name]
+  file-open file-name
+  let firm-count 0
+  let staff-list (list -1)
+  
+  while [not file-at-end?] [
+    set firm-count firm-count + 1
+    let items split file-read-line ","
+    set staff-list lput try-to-read item 1 items staff-list
+  ]
+  set staff-list remove-item 0 staff-list
+  set staff-list remove-item 0 staff-list
+  set firm-count firm-count - 1
+  set nFirms firm-count
+  
+  ;; create firms if nerver created
+  if count firms = 0 [
+    initialise-firms nFirms
+  ]
+  
+  let counting 0
+    
+  foreach sort firms [
+    ask ? [ set staff-number item counting staff-list ]
+    set counting counting + 1
+  ]
+  
+  file-close
+  
 end
 
 
@@ -1329,7 +1399,7 @@ nUniversities
 nUniversities
 0
 100
-0
+22
 1
 1
 NIL
@@ -1393,7 +1463,7 @@ nTTs
 nTTs
 0
 100
-0
+26
 1
 1
 NIL
@@ -1477,7 +1547,7 @@ SWITCH
 449
 display-universities
 display-universities
-1
+0
 1
 -1000
 
@@ -1682,7 +1752,7 @@ nFirms
 nFirms
 0
 100
-13
+138
 1
 1
 NIL
@@ -1994,6 +2064,17 @@ NIL
 NIL
 NIL
 1
+
+SWITCH
+1545
+365
+1740
+398
+import-empirical-data
+import-empirical-data
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
